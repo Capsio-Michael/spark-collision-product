@@ -12,7 +12,7 @@
 
 ## 文档导航
 
-- [产品定义](docs/product-definition.md)：对象、证据与判断规则、输出结构。
+- [产品定义](docs/product-definition.md)：对象、证据与判断规则、输出结构，以及市场与运营验证范围。
 - [MVP 范围与验收](docs/mvp-acceptance.md)：今天做什么、怎样证明完成。
 - [协作分工与任务池](docs/collaboration.md)：用户提议负责后端引擎与服务，同事负责交互与用户体验；其余职责待认领。
 - [决策记录](docs/decisions.md)：已确定的边界与待裁定事项。
