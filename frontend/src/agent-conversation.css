@@ -41,6 +41,7 @@ body:has(.agent-page) { background: var(--agent-bg); }
 .agent-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--agent-lime); animation: agent-pulse 1s infinite alternate; }
 @keyframes agent-pulse { to { opacity: .2; } }
 .agent-result-summary { margin: 14px 0 8px; color: var(--agent-lime); font-size: 12px; }
+.agent-live-note { font-size: 10px; color: #a5c6c4; margin: -3px 0 9px; }
 .agent-result-cards { display: grid; gap: 8px; }
 .agent-result-card { display: grid; gap: 4px; text-align: left; border: 1px solid #3b635e; border-radius: 10px; background: #0d3035; padding: 12px; max-width: 410px; }
 .agent-result-card:hover { border-color: var(--agent-lime); }
@@ -48,6 +49,8 @@ body:has(.agent-page) { background: var(--agent-bg); }
 .agent-result-card strong { color: #eff9f0; font-size: 14px; }
 .agent-result-card small { color: #aec4c4; font-size: 11px; }
 .agent-result-card em { color: #b9ed93; font-style: normal; font-size: 11px; }
+.agent-source-link { display: block; border: 0; background: none; color: #b9ed93; padding: 5px 0 0; font-size: 11px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.agent-source-link:hover { text-decoration: underline; }
 .agent-history-link { margin-top: 10px; border: 0; padding: 3px 0; background: none; color: var(--agent-lime); font-size: 12px; }
 .agent-composer-wrap { width: min(1400px, 100%); margin: auto; padding: 0 clamp(22px, 4.5vw, 88px) 24px; }
 .agent-composer { border: 1px solid #476a68; border-radius: 18px; padding: 13px 18px 11px; background: #0b2934; box-shadow: 0 10px 40px #0003; }
@@ -82,3 +85,43 @@ body:has(.agent-page) { background: var(--agent-bg); }
 @media (prefers-reduced-motion: reduce) { .agent-hero img, .agent-pulse { animation: none; } }
 @media (max-width: 960px) { .agent-header { flex-wrap: wrap; } .agent-header nav { order: 3; width: 100%; justify-content: space-between; overflow: auto; } .agent-stage { grid-template-columns: 1fr; gap: 0; } .agent-copy { padding-top: 42px; } .agent-hero { grid-column: 1; grid-row: 2; min-height: 330px; margin-top: 24px; } .agent-hero img { max-height: 310px; width: min(60%, 270px); } .agent-conversation { grid-column: 1; max-width: none; margin-top: 28px; } .agent-feed { max-height: 280px; } }
 @media (max-width: 620px) { .agent-header { gap: 8px; padding: 14px 18px; } .agent-brand { font-size: 17px; } .agent-brand-mark { font-size: 27px; } .agent-engine { margin-left: auto; padding: 7px 10px; font-size: 10px; } .agent-header nav { gap: 17px; } .agent-header nav a { font-size: 12px; } .agent-main, .agent-composer-wrap { padding-left: 18px; padding-right: 18px; } .agent-copy { padding-top: 26px; } .agent-kicker { font-size: 10px; } .agent-copy h1 { font-size: 38px; margin: 14px 0; } .agent-copy p { font-size: 13px; } .agent-data-note { margin-top: 12px; font-size: 10px; } .agent-hero { min-height: 155px; height: 155px; margin-top: 16px; } .agent-hero img { max-height: 147px; } .agent-hero-tag { font-size: 10px; right: 10px; bottom: 10px; } .agent-conversation { margin-top: 16px; } .agent-feed { max-height: 170px; } .agent-composer-wrap { position: sticky; bottom: 0; background: #061825f0; padding-top: 8px; } .agent-mode-row > span { display: none; } .agent-basis { align-items: flex-start; flex-direction: column; } .agent-stage.with-conversation .agent-copy { display: none; } .agent-stage.with-conversation .agent-hero { min-height: 115px; height: 115px; margin-top: 12px; } .agent-stage.with-conversation .agent-hero img { max-height: 110px; } .agent-stage.with-conversation .agent-conversation { margin-top: 12px; } .agent-stage.with-conversation .agent-feed { max-height: 300px; } }
+
+/* Conversation photo is an original AI generated asset, not the reference site's image. */
+.agent-page { position: relative; isolation: isolate; background: #081724; }
+.agent-page::before { content: ''; position: fixed; z-index: -1; inset: 0; pointer-events: none; background: linear-gradient(90deg, #06131fe8 0%, #081624c2 31%, #0a172377 56%, #07131d49 100%), linear-gradient(0deg, #06131ff2 0%, #06131fb0 22%, transparent 64%), url('/src/assets/conversation-hero.jpg') center center / cover no-repeat; }
+.agent-header { background: #07162075; backdrop-filter: blur(8px); border-bottom-color: #ffffff30; }
+.agent-header nav a { color: #edf1eec9; }
+.agent-header nav a:hover, .agent-header nav a[aria-current] { color: #d3f99a; }
+.agent-main { width: min(1600px, 100%); padding-bottom: 18px; }
+.agent-stage { display: block; position: relative; min-height: 570px; }
+.agent-intro { display: block; }
+.agent-copy { padding-top: clamp(58px, 10vh, 115px); max-width: 750px; }
+.agent-kicker { color: #c4eaa1; }
+.agent-copy h1 { color: #fff; font-size: clamp(56px, 6.1vw, 96px); line-height: 1.06; letter-spacing: -.045em; margin: 26px 0 26px; }
+.agent-copy h1 strong { color: #fff; }
+.agent-copy p { color: #f0f5ef; font-size: clamp(17px, 1.5vw, 22px); text-shadow: 0 1px 10px #06131f; }
+.agent-data-note { color: #d5e4dc; margin-top: 19px; }
+.agent-hero { position: absolute; right: 2%; bottom: 32px; width: 160px; height: 180px; min-height: 0; border-radius: 22px; border-color: #d4f4ba5c; background: #0b322fd0; box-shadow: 0 15px 35px #0006; }
+.agent-hero::before { background-size: 28px 28px; }
+.agent-hero-orbit { width: 86%; box-shadow: 0 0 0 10px #baf56a0d; }
+.agent-hero img { max-height: 145px; width: 83%; }
+.agent-hero-tag { bottom: 7px; right: 7px; font-size: 9px; padding: 4px 8px; }
+.agent-conversation { max-width: 650px; margin-top: 36px; }
+.agent-conversation-heading { color: #e3f5ee; border-bottom-color: #ffffff69; }
+.agent-conversation-heading span:last-child { color: #c5d8d3; }
+.agent-feed { max-height: 210px; }
+.agent-message-body { background: #092832e8; border-color: #90bbba68; backdrop-filter: blur(8px); }
+.agent-message.from-user .agent-message-body { background: #174b4bde; }
+.agent-composer-wrap { width: min(1600px, 100%); padding-bottom: 20px; }
+.agent-composer { background: #09232ce8; backdrop-filter: blur(16px); border-color: #a4c4b68a; }
+.agent-footnote { color: #d2ded8; }
+.agent-stage.with-conversation { min-height: 535px; }
+.agent-stage.with-conversation .agent-copy { padding-top: 30px; }
+.agent-stage.with-conversation .agent-copy h1 { font-size: clamp(42px, 4.1vw, 64px); }
+.agent-stage.with-conversation .agent-hero { min-height: 0; height: 140px; width: 128px; }
+.agent-stage.with-conversation .agent-hero img { max-height: 115px; }
+.agent-stage.with-conversation .agent-conversation { margin-top: 18px; }
+.agent-stage.with-conversation .agent-feed { max-height: 300px; }
+@media (max-width: 960px) { .agent-stage { min-height: 0; } .agent-hero { right: 0; bottom: 30px; width: 110px; height: 125px; min-height: 0; margin: 0; } .agent-hero img { max-height: 102px; } .agent-conversation { max-width: calc(100% - 125px); } .agent-stage.with-conversation { min-height: 0; } .agent-stage.with-conversation .agent-hero { width: 95px; height: 105px; min-height: 0; } .agent-stage.with-conversation .agent-hero img { max-height: 84px; } }
+@media (max-width: 620px) { .agent-page::before { background: linear-gradient(90deg, #06131fe6, #06131f94), linear-gradient(0deg, #06131ff2 0%, transparent 80%), url('/src/assets/conversation-hero.jpg') 63% center / cover no-repeat; } .agent-header { background: #071620b8; } .agent-copy { padding-top: 35px; } .agent-copy h1 { font-size: clamp(43px, 11vw, 56px); margin: 18px 0; } .agent-copy p { font-size: 15px; } .agent-hero { position: relative; right: auto; bottom: auto; width: 92px; height: 100px; min-height: 0; margin: 17px 0 0; } .agent-hero img { max-height: 88px; } .agent-hero-tag { display: none; } .agent-conversation { max-width: none; margin-top: 14px; } .agent-feed { max-height: 190px; } .agent-stage.with-conversation .agent-copy { display: none; } .agent-stage.with-conversation .agent-hero { width: 80px; height: 86px; margin-top: 10px; } .agent-stage.with-conversation .agent-hero img { max-height: 75px; } .agent-stage.with-conversation .agent-conversation { margin-top: 12px; } .agent-stage.with-conversation .agent-feed { max-height: 330px; } .agent-composer-wrap { background: #071620ed; } }
+@media (max-width: 620px) { .agent-copy { padding-top: 18px; } .agent-copy h1 { font-size: 40px; margin: 12px 0; } .agent-data-note { display: none; } .agent-hero { width: 64px; height: 70px; margin-top: 9px; } .agent-hero img { max-height: 62px; } .agent-conversation { margin-top: 8px; } .agent-stage.with-conversation .agent-hero { width: 58px; height: 64px; } .agent-stage.with-conversation .agent-hero img { max-height: 56px; } }

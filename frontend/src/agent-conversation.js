@@ -3,10 +3,11 @@ import { decodeMaterialFiles } from './material-workflow.js';
 import { resultChanges, resultCounts } from './agent-conversation-model.js';
 
 const KEY = 'spark-collision:agent-conversation:v1';
-const hello = '你好，我是 Sparky。你可以先告诉我在想什么，也可以粘贴一段讨论记录或附上 TXT、Markdown 文件。我会区分原话与分析结果；没有足够依据时，也会如实告诉你。';
+const hello = '你好，我是 Sparky。聊聊你的想法，或粘贴讨论记录、添加 TXT／Markdown。我会标明依据；没有足够信息，就不硬凑火花。';
+const HERO_COPY = { first: 'Every conversation', second: 'holds a spark.', subtitle: '发现洞察，让理解不断加深' };
 const greetings = /^(你好|嗨|hi|hello|暂时没有|还没有|先看看|谢谢|在吗)[！!。. ]*$/i;
 
-export function createAgentConversation({ storage, workflow, onRender, onPoll, onInsight, onOverview, onConnect }) {
+export function createAgentConversation({ storage, workflow, onRender, onPoll, onInsight, onEvidence, onOverview, onConnect }) {
   let saved = {};
   try { saved = JSON.parse(storage.getItem(KEY) || '{}'); } catch { /* Keep the current page usable. */ }
   const state = {
@@ -17,10 +18,11 @@ export function createAgentConversation({ storage, workflow, onRender, onPoll, o
     consent: false, file: null, busy: false, error: '',
     pendingRecordId: typeof saved.pendingRecordId === 'string' ? saved.pendingRecordId : null,
     pendingJobId: typeof saved.pendingJobId === 'string' ? saved.pendingJobId : null,
+    pendingAgentKey: typeof saved.pendingAgentKey === 'string' ? saved.pendingAgentKey : null,
     lastShownVersion: Number.isInteger(saved.lastShownVersion) ? saved.lastShownVersion : 0,
   };
   const persist = () => {
-    try { storage.setItem(KEY, JSON.stringify({ messages: state.messages.slice(-20), draft: state.draft, mode: state.mode, basis: state.basis, pendingRecordId: state.pendingRecordId, pendingJobId: state.pendingJobId, lastShownVersion: state.lastShownVersion })); }
+    try { storage.setItem(KEY, JSON.stringify({ messages: state.messages.slice(-20), draft: state.draft, mode: state.mode, basis: state.basis, pendingRecordId: state.pendingRecordId, pendingJobId: state.pendingJobId, pendingAgentKey: state.pendingAgentKey, lastShownVersion: state.lastShownVersion })); }
     catch { state.error = '浏览器未能保存对话，刷新后可能丢失消息；分析材料会另外保存在项目草稿。'; }
   };
   const add = (role, text, extra = {}) => { state.messages.push({ role, text, ...extra }); state.messages = state.messages.slice(-20); persist(); onRender(); };
@@ -47,15 +49,15 @@ export function createAgentConversation({ storage, workflow, onRender, onPoll, o
     sync();
     const hasConversation = state.messages.length > 0;
     const overview = workflow.state.overview;
-    const status = workflow.state.active_job ? '正在整理材料与证据…' : state.busy ? '正在保存并提交材料…' : state.pendingRecordId ? '材料已保留，等待恢复连接或提交…' : '';
-    const content = state.messages.map(message => `<div class="agent-message ${message.role === 'user' ? 'from-user' : 'from-agent'}"><div class="agent-message-label">${message.role === 'user' ? '你' : 'SPARKY'}</div><div class="agent-message-body">${e(message.text)}</div>${Number.isInteger(message.resultVersion) && message.resultVersion === overview?.snapshot_version ? resultCards(overview) : Number.isInteger(message.resultVersion) ? `<button class="agent-history-link" data-agent-action="overview">查看 v${message.resultVersion} 的历史结果 →</button>` : ''}</div>`).join('');
-    return `<div class="agent-page"><header class="agent-header"><a href="#chat" class="agent-brand"><span class="agent-brand-mark">✳</span><span>智慧火花碰撞</span></a><nav aria-label="主要导航"><a href="#chat" aria-current="page">与 Sparky 对话</a><a href="#overview">项目总览</a><a href="#materials">材料</a><a href="#history">历史</a></nav><button class="agent-engine" data-agent-action="connect"><span class="agent-engine-dot ${workflow.connected ? 'is-on' : ''}"></span>${workflow.connected ? `${workflow.health?.engine_mode === 'mock' ? '模拟引擎' : '引擎'}已连接` : '连接本机引擎'}</button></header>
+    const status = workflow.state.active_job ? '正在整理材料与证据…' : state.busy ? workflow.health?.chat_provider === 'kimi' ? '正在等待 Kimi 响应…' : '正在保存并提交材料…' : state.pendingRecordId ? '材料已保留，等待恢复连接或提交…' : '';
+    const content = state.messages.map((message, index) => `<div class="agent-message ${message.role === 'user' ? 'from-user' : 'from-agent'}"><div class="agent-message-label">${message.role === 'user' ? '你' : message.kind === 'kimi-chat' || message.agentResult ? 'SPARKY · KIMI' : 'SPARKY'}</div><div class="agent-message-body">${e(message.text)}</div>${message.agentResult ? agentResultCards(message.agentResult, index) : Number.isInteger(message.resultVersion) && message.resultVersion === overview?.snapshot_version ? resultCards(overview) : Number.isInteger(message.resultVersion) ? `<button class="agent-history-link" data-agent-action="overview">查看 v${message.resultVersion} 的历史结果 →</button>` : ''}</div>`).join('');
+    return `<div class="agent-page"><header class="agent-header"><a href="#chat" class="agent-brand"><span class="agent-brand-mark">✳</span><span>智慧火花碰撞</span></a><nav aria-label="主要导航"><a href="#chat" aria-current="page">与 Sparky 对话</a><a href="#overview">项目总览</a><a href="#materials">材料</a><a href="#history">历史</a></nav><button class="agent-engine" data-agent-action="connect"><span class="agent-engine-dot ${workflow.connected ? 'is-on' : ''}"></span>${workflow.connected ? `${workflow.health?.chat_provider === 'kimi' ? 'Kimi 对话已配置 · 项目分析仍为 mock' : '模拟引擎已连接'}` : '连接本机引擎'}</button></header>
       <main id="main-content" class="agent-main"><div class="agent-stage ${hasConversation ? 'with-conversation' : ''}">
-        <section class="agent-intro"><div class="agent-copy"><span class="agent-kicker">CONVERSATION INTELLIGENCE · 智慧火花碰撞</span><h1>对话会结束<br><strong>认知会继续</strong></h1><p>把讨论中的补充、质疑和反例，变成有原话依据的项目记忆</p><span class="agent-data-note">当前支持 TXT、Markdown 与粘贴文本 · ${workflow.health?.engine_mode === 'mock' ? '模拟引擎演示' : '分析以已连接服务为准'}</span></div><div class="agent-hero" aria-label="Sparky 小青蛙"><div class="agent-hero-orbit"></div><img src="/src/assets/sparky-reference.png" alt="Sparky 小青蛙站在光圈中"/><span class="agent-hero-tag">你好，我是 Sparky ✦</span></div></section>
+        <section class="agent-intro"><div class="agent-copy"><span class="agent-kicker">SPARK COLLISION · 智慧火花碰撞</span><h1>${e(HERO_COPY.first)}<br><strong>${e(HERO_COPY.second)}</strong></h1><p>${e(HERO_COPY.subtitle)}</p><span class="agent-data-note">TXT、Markdown 与粘贴文本 · ${workflow.health?.chat_provider === 'kimi' ? 'Kimi 对话与独立引文分析已配置，项目总览仍为 mock' : '本机模拟引擎演示'}</span></div><div class="agent-hero" aria-label="Sparky 小青蛙"><div class="agent-hero-orbit"></div><img src="/src/assets/sparky-reference.png" alt="Sparky 小青蛙站在光圈中"/><span class="agent-hero-tag">你好，我是 Sparky ✦</span></div></section>
         <section class="agent-conversation" aria-label="与 Sparky 对话"><div class="agent-conversation-heading"><span>与你一起追踪变化</span><span>${workflow.state.overview?.snapshot_version ? `项目记忆 v${workflow.state.overview.snapshot_version}` : '等待第一段交流'}</span></div><div class="agent-feed" id="agent-feed" role="log" aria-live="polite"><div class="agent-message from-agent"><div class="agent-message-label">SPARKY</div><div class="agent-message-body">${hello}</div></div>${content}${status ? `<div class="agent-status" role="status"><span class="agent-pulse"></span>${e(status)}</div>` : ''}</div></section>
       </div></main><div class="agent-composer-wrap"><form id="agent-form" class="agent-composer"><div class="agent-mode-row"><button type="button" data-agent-mode="talk" class="agent-mode ${state.mode === 'talk' ? 'active' : ''}">聊聊想法</button><button type="button" data-agent-mode="analyze" class="agent-mode ${state.mode === 'analyze' ? 'active' : ''}">分析讨论记录</button><span>${state.file ? e(state.file.name) : '原话、观点与推断分开呈现'}</span></div><label class="sr-only" for="agent-input">输入消息或讨论记录</label><textarea id="agent-input" rows="2" maxlength="20000" placeholder="${state.mode === 'analyze' ? '粘贴一段会议或访谈记录，或附上 TXT、Markdown 文件' : '告诉 Sparky 你在想什么…'}">${e(state.draft)}</textarea><div class="agent-composer-bottom"><div class="agent-composer-tools"><label class="agent-attach">＋ 添加文本文件<input id="agent-file" type="file" accept=".txt,.md,text/plain,text/markdown" hidden></label><button type="button" data-agent-action="mic" class="agent-mic" aria-label="录音功能说明">♩</button>${state.file ? '<button type="button" data-agent-action="remove-file" class="agent-file-remove">移除附件</button>' : ''}</div><button type="submit" class="agent-send" ${state.busy || workflow.state.active_job ? 'disabled' : ''}>发送 <span>↗</span></button></div>
-      ${state.mode === 'analyze' ? `<div class="agent-basis"><label>材料来源 <select id="agent-basis"><option value="synthetic" ${state.basis === 'synthetic' ? 'selected' : ''}>合成演示材料</option><option value="authorized" ${state.basis === 'authorized' ? 'selected' : ''}>已获使用授权的材料</option></select></label>${state.basis === 'authorized' ? '<label class="agent-consent"><input id="agent-consent" type="checkbox" ' + (state.consent ? 'checked' : '') + '>我确认有权将这份材料用于本机分析</label>' : '<span>合成案例用于演示，请勿填写客户私密信息</span>'}</div>` : ''}
-      ${state.error || state.pendingRecordId && !workflow.state.active_job && !state.busy && !state.pendingJobId ? `<div class="agent-error" role="alert">${e(state.error || '上次提交尚未完成，材料已保存在项目草稿中。')} ${state.pendingRecordId ? '<button type="button" data-agent-action="retry">重试提交</button>' : ''}</div>` : ''}</form><div class="agent-footnote">Sparky 不会自动执行外部任务 · 录音转写尚未接入</div></div></div>`;
+      ${state.mode === 'analyze' ? `<div class="agent-basis"><label>材料来源 <select id="agent-basis"><option value="synthetic" ${state.basis === 'synthetic' ? 'selected' : ''}>合成演示材料</option><option value="authorized" ${state.basis === 'authorized' ? 'selected' : ''}>已获使用授权的材料</option></select></label>${state.basis === 'authorized' ? '<label class="agent-consent"><input id="agent-consent" type="checkbox" ' + (state.consent ? 'checked' : '') + '>' + (workflow.health?.chat_provider === 'kimi' ? '我确认有权将这份材料发送给 Kimi 分析' : '我确认有权将这份材料用于本机分析') + '</label>' : '<span>合成案例用于演示，请勿填写客户私密信息</span>'}</div>` : ''}
+      ${state.error || state.pendingRecordId && !workflow.state.active_job && !state.busy && !state.pendingJobId ? `<div class="agent-error" role="alert">${e(state.error || '上次提交尚未完成，材料已保存在项目草稿中。')} ${state.pendingRecordId ? '<button type="button" data-agent-action="retry">重试提交</button>' : ''}</div>` : ''}</form><div class="agent-footnote">${workflow.health?.chat_provider === 'kimi' ? '对话文字与确认分析的材料会发送给 Kimi' : '本机模拟服务未调用外部模型'} · 不自动执行外部任务 · 无录音转写</div></div></div>`;
   }
 
   function resultCards(overview) {
@@ -69,6 +71,20 @@ export function createAgentConversation({ storage, workflow, onRender, onPoll, o
     }).join('')}</div><button class="agent-history-link" data-agent-action="overview">查看全部结果与历史 →</button>`;
   }
 
+  function agentResultCards(item, messageIndex) {
+    const result = item?.result;
+    if (item.provider !== 'kimi' || !result || !Array.isArray(result.changes) || !['updated', 'no_new_insight', 'insufficient_evidence'].includes(result.outcome)) return '';
+    const counts = {
+      new: result.changes.filter(change => change?.type === 'new').length,
+      supplemented: result.changes.filter(change => ['supported', 'qualified'].includes(change?.type)).length,
+      revised: result.changes.filter(change => ['revised', 'challenged'].includes(change?.type)).length,
+    };
+    return `<div class="agent-result-summary">Kimi 引文分析 · ${counts.new} 新、${counts.supplemented} 补充、${counts.revised} 修正</div><p class="agent-live-note">引文已由本机服务逐字核对 · 独立保存 · 尚未写入项目总览版本</p><div class="agent-result-cards">${result.changes.map((change, changeIndex) => {
+      if (typeof change?.title !== 'string' || typeof change?.reason !== 'string' || typeof change?.judgment !== 'string' || !Array.isArray(change?.evidence)) return '';
+      return `<div class="agent-result-card"><span>${e({ new: '新关注点', supported: '再次支持', qualified: '条件补充', revised: '认识修正', challenged: '受到质疑' }[change.type] || '变化')}</span><strong>${e(change.title)}</strong><small>${e(change.reason)}</small><small>${e(change.judgment)}</small>${change.evidence.map((citation, citationIndex) => `<button type="button" class="agent-source-link" data-agent-evidence="${messageIndex}.${changeIndex}.${citationIndex}">原话：${e(citation?.quote || '')} ↗</button>`).join('')}</div>`;
+    }).join('')}</div>`;
+  }
+
   async function submit() {
     if (state.busy || workflow.state.active_job) return;
     state.error = '';
@@ -76,9 +92,22 @@ export function createAgentConversation({ storage, workflow, onRender, onPoll, o
     if (!text && !state.file) { state.error = '请先输入消息或添加 TXT、Markdown 文件。'; onRender(); return; }
     if (state.mode === 'talk') {
       if (state.file) { state.error = '请切换到“分析讨论记录”再发送附件。'; onRender(); return; }
-      add('user', text); state.draft = '';
-      const answer = greetings.test(text) ? '我在这里。你准备好时，可以聊聊想法，或切换到“分析讨论记录”提交一段文字。' : '我收到你的想法了。当前的本机服务还不支持开放式连续追问；如果这是一段会议或访谈原话，请选择“分析讨论记录”，我会据此检查证据与认知变化。';
-      add('assistant', answer); persist(); onRender(); return;
+      add('user', text, { kind: 'talk' }); state.draft = ''; persist();
+      if (workflow.connected && workflow.health?.chat_provider === 'kimi') {
+        const history = state.messages.filter(message => ['talk', 'kimi-chat'].includes(message.kind) && !message.partial && message.text).slice(-12).map(message => ({ role: message.role, content: message.text.slice(0, 2000) }));
+        state.busy = true; add('assistant', '', { kind: 'kimi-chat', partial: true });
+        const reply = state.messages.at(-1);
+        try {
+          await workflow.api.chatStream(history, part => { reply.text += part; persist(); onRender(); });
+          reply.partial = false; persist();
+        } catch (error) {
+          reply.text += `${reply.text ? '\n\n' : ''}Kimi 对话未完成：${error.message}`;
+          state.error = '本轮回复未完成，未当作已确认结论。'; persist();
+        } finally { state.busy = false; onRender(); }
+        return;
+      }
+      const answer = greetings.test(text) ? '我在这里。你准备好时，可以聊聊想法，或切换到“分析讨论记录”提交一段文字。' : '我收到你的想法了。当前本机没有启用开放式对话服务；如果这是一段会议或访谈原话，请选择“分析讨论记录”。';
+      add('assistant', answer); onRender(); return;
     }
     if (state.basis === 'authorized' && !state.consent) { state.error = '请先确认这份材料已获使用授权。'; onRender(); return; }
     state.busy = true; onRender();
@@ -89,7 +118,7 @@ export function createAgentConversation({ storage, workflow, onRender, onPoll, o
       };
       if (state.file && text) record.content += `\n\n补充说明：${text}`;
       record.material_basis = state.basis;
-      record.authorization_note = state.basis === 'authorized' ? '用户在对话入口确认有权用于本机分析' : null;
+      record.authorization_note = state.basis === 'authorized' ? workflow.health?.chat_provider === 'kimi' ? '用户在对话入口确认有权发送给 Kimi 分析' : '用户在对话入口确认有权用于本机分析' : null;
       workflow.save([record]);
       state.pendingRecordId = record.client_record_id;
       add('user', state.file ? `分析附件：${state.file.name}${text ? `\n补充说明：${text}` : ''}` : text);
@@ -106,6 +135,17 @@ export function createAgentConversation({ storage, workflow, onRender, onPoll, o
     if (!workflow.state.submissions[id]) await workflow.submit([id]);
     const serverId = workflow.state.submissions[id];
     if (!serverId) throw new Error('材料提交状态未确认，请在材料列表核查。');
+    if (workflow.health?.agent_analysis_mode === 'kimi') {
+      const record = workflow.state.drafts.find(item => item.client_record_id === id);
+      if (record?.material_basis === 'authorized' && !state.consent) throw new Error('请确认有权将这份材料发送给 Kimi 分析后再重试。');
+      if (!state.pendingAgentKey) { state.pendingAgentKey = crypto.randomUUID(); persist(); }
+      const result = await workflow.api.agentAnalysis(workflow.state.project.id, serverId, !!state.consent, state.pendingAgentKey);
+      state.pendingRecordId = null; state.pendingAgentKey = null; state.error = '';
+      const counts = result.result?.counts;
+      const body = result.result?.outcome === 'updated' ? `Kimi 已完成引文核对：${counts.new} 个新关注点、${counts.supplemented} 个补充、${counts.revised} 个修正。` : result.result?.outcome === 'no_new_insight' ? 'Kimi 本轮未发现有据可查的新火花，保留原来的认识。' : 'Kimi 本轮认为证据不足，没有生成火花。';
+      add('assistant', `${body}\n${result.result.summary}`, { agentResult: result });
+      persist(); onRender(); return;
+    }
     if (!workflow.state.active_job) await workflow.startAnalysis([serverId]);
     state.pendingJobId = workflow.state.active_job?.id || null;
     state.error = ''; persist(); onPoll(0); onRender();
@@ -122,5 +162,11 @@ export function createAgentConversation({ storage, workflow, onRender, onPoll, o
     handleConsent(value) { state.consent = value; },
     handleFile(file) { if (!file) return; state.file = file; state.mode = 'analyze'; state.error = ''; persist(); onRender(); },
     handleInsight(id) { onInsight(id); },
+    handleEvidence(path) {
+      const parts = path.split('.').map(Number);
+      if (parts.length !== 3 || parts.some(value => !Number.isSafeInteger(value) || value < 0)) return;
+      const citation = state.messages[parts[0]]?.agentResult?.result?.changes?.[parts[1]]?.evidence?.[parts[2]];
+      if (citation && typeof citation.record_id === 'string' && typeof citation.segment_id === 'string' && typeof citation.quote === 'string') onEvidence(citation);
+    },
   };
 }

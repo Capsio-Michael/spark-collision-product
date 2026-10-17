@@ -1,4 +1,4 @@
-"""Local v0.1 HTTP API. Analysis is deterministic mock logic, never a model call."""
+"""Local v0.1 HTTP API with explicit mock and optional Kimi agent endpoints."""
 from __future__ import annotations
 
 import argparse
@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import os
 from pathlib import Path
 import re
 import sqlite3
@@ -15,6 +16,8 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from uuid import uuid4
 
 from .analysis import DIMENSIONS, build_analysis
+from .agent_analysis import AnalysisError, messages_for, validate_analysis
+from .kimi import KimiProvider, ProviderError
 
 SHANGHAI = timezone(timedelta(hours=8))
 ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5201", "http://127.0.0.1:5201"}
@@ -63,7 +66,7 @@ def validate_date(value, path):
 
 
 def empty_state():
-    return {"project": None, "records": [], "jobs": [], "snapshots": [], "versions": []}
+    return {"project": None, "records": [], "jobs": [], "snapshots": [], "versions": [], "agent_analyses": []}
 
 
 class Store:
@@ -80,7 +83,9 @@ class Store:
 
     def read(self):
         with self.lock:
-            return json.loads(self.db.execute("SELECT payload FROM state WHERE id=1").fetchone()[0])
+            state = json.loads(self.db.execute("SELECT payload FROM state WHERE id=1").fetchone()[0])
+            state.setdefault("agent_analyses", [])
+            return state
 
     def mutate(self, scope, key, body, action):
         check(isinstance(key, str) and 0 < len(key) <= 200, "Idempotency-Key", "需要 Idempotency-Key 请求头")
@@ -229,14 +234,29 @@ def export_markdown(state, snap):
 
 
 class App:
-    def __init__(self, db_path):
+    def __init__(self, db_path, chat_provider=None):
         self.store = Store(db_path)
+        self.chat_provider = chat_provider
+
+    def stream_chat(self, body):
+        if not self.chat_provider:
+            raise ApiError(503, "PROVIDER_NOT_CONFIGURED", "本机尚未配置 Kimi 对话服务")
+        check(isinstance(body, dict) and set(body) == {"messages"} and isinstance(body["messages"], list), "messages")
+        raw = body["messages"]
+        check(1 <= len(raw) <= 12, "messages", "最多传入最近 12 条对话")
+        messages = []
+        for index, item in enumerate(raw):
+            check(isinstance(item, dict) and set(item) == {"role", "content"} and item["role"] in ("user", "assistant") and isinstance(item["content"], str) and 0 < len(item["content"].strip()) <= 2000, f"messages[{index}]")
+            messages.append({"role": item["role"], "content": item["content"].strip()})
+        check(messages[-1]["role"] == "user" and sum(len(item["content"]) for item in messages) <= 12000, "messages", "最后一条须为用户消息且总长度不得超过 12,000 字")
+        system = {"role": "system", "content": "你是智慧火花碰撞的 Sparky。自然回应用户，帮助厘清想法。不要声称已分析材料、生成证据、执行外部任务或批准行动；只有明确的分析结果接口才能报告火花。简洁回答，承认不确定性。"}
+        return self.chat_provider.stream([system, *messages])
 
     def call(self, method, path, query=None, body=None, key=None):
         query = query or {}
         state = self.store.read()
         if method == "GET" and path == "/health":
-            return 200, {"status": "ok", "api_version": "0.1", "engine_mode": "mock", "model_configured": False}, {}
+            return 200, {"status": "ok", "api_version": "0.1", "engine_mode": "mock", "model_configured": bool(self.chat_provider), "chat_provider": "kimi" if self.chat_provider else "none", "agent_analysis_mode": "kimi" if self.chat_provider else "unavailable"}, {}
         if method == "GET" and path == "/projects":
             return 200, {"items": [state["project"]] if state["project"] else []}, {}
         if method == "POST" and path == "/projects":
@@ -257,6 +277,39 @@ class App:
         if method == "GET" and tail == "records":
             covered = source_ids(state)
             return 200, {"items": [record_summary(r, covered) for r in state["records"]]}, {}
+        if method == "GET" and tail == "agent-analyses":
+            return 200, {"items": deepcopy(state["agent_analyses"])}, {}
+        if method == "POST" and tail == "agent-analysis":
+            if not self.chat_provider:
+                raise ApiError(503, "PROVIDER_NOT_CONFIGURED", "本机尚未配置 Kimi 分析服务")
+            check(isinstance(body, dict) and set(body) == {"record_id", "allow_external_processing"} and isinstance(body["record_id"], str) and isinstance(body["allow_external_processing"], bool), "record_id")
+            def analyze_with_kimi(state):
+                project_in(state, project_id)
+                added_id = body["record_id"]
+                record = next((item for item in state["records"] if item["id"] == added_id), None)
+                if not record:
+                    raise ApiError(404, "RECORD_NOT_FOUND", "分析材料不存在")
+                if record["material_basis"] == "authorized" and not body["allow_external_processing"]:
+                    raise ApiError(422, "EXTERNAL_PROCESSING_NOT_APPROVED", "已获授权材料须明确确认可发送给 Kimi 分析")
+                if any(item["record_id"] == added_id for item in state["agent_analyses"]):
+                    raise ApiError(409, "RECORD_ALREADY_ANALYZED", "这份材料已有 Kimi 分析结果")
+                prior = state["agent_analyses"]
+                scope_ids = [item["record_id"] for item in prior] + [added_id]
+                scope = [item for item in state["records"] if item["id"] in scope_ids]
+                if sum(len(item["content"]) for item in scope) > 16000:
+                    raise ApiError(413, "ANALYSIS_CONTEXT_LIMIT", "本轮上下文超过 16,000 字，请缩短演示材料")
+                try:
+                    raw = self.chat_provider.complete(messages_for(scope, added_id, prior))
+                    result = validate_analysis(raw, scope, added_id, prior)
+                except AnalysisError as error:
+                    raise ApiError(502, "MODEL_RESULT_INVALID", str(error)) from None
+                except ProviderError as error:
+                    raise ApiError(502, error.code, error.message) from None
+                item = {"id": uid("agent"), "record_id": added_id, "created_at": now(), "provider": "kimi", "model": self.chat_provider.model, "result": result}
+                state["agent_analyses"].append(item)
+                return 201, item
+            status, result, _ = self.store.mutate(f"{path}", key, body, analyze_with_kimi)
+            return status, result, {}
         if method == "POST" and tail == "records":
             def import_records(state):
                 project_in(state, project_id)
@@ -412,6 +465,28 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(payload)
 
+    def _send_events(self, chunks):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        origin = self.headers.get("Origin")
+        if origin in ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.end_headers()
+        try:
+            count = 0
+            for part in chunks:
+                count += len(part)
+                self.wfile.write(f"event: delta\ndata: {json.dumps({'text': part}, ensure_ascii=False)}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            self.wfile.write(f"event: done\ndata: {json.dumps({'characters': count})}\n\n".encode())
+        except ProviderError as error:
+            self.wfile.write(f"event: error\ndata: {json.dumps({'code': error.code, 'message': error.message}, ensure_ascii=False)}\n\n".encode("utf-8"))
+        except (BrokenPipeError, ConnectionResetError):
+            return
+
     def do_OPTIONS(self):
         self.send_response(204)
         origin = self.headers.get("Origin")
@@ -444,7 +519,11 @@ class Handler(BaseHTTPRequestHandler):
                     body = json.loads(self.rfile.read(length))
                 except (UnicodeDecodeError, json.JSONDecodeError):
                     raise ApiError(422, "VALIDATION_ERROR", "JSON 格式无效") from None
-            status, result, headers = self.app.call(self.command, unquote(url.path[len("/api/v1"):]), parse_qs(url.query), body, self.headers.get("Idempotency-Key"))
+            path = unquote(url.path[len("/api/v1"):])
+            if self.command == "POST" and path == "/chat/stream":
+                self._send_events(self.app.stream_chat(body))
+                return
+            status, result, headers = self.app.call(self.command, path, parse_qs(url.query), body, self.headers.get("Idempotency-Key"))
             self._send(status, result, headers)
         except ApiError as error:
             self._send(error.status, error.payload(), error=True)
@@ -458,9 +537,16 @@ def main():
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--db", default="var/spark.db")
     args = parser.parse_args()
-    Handler.app = App(args.db)
+    mode = os.environ.get("SPARK_CHAT_PROVIDER", "none").strip().lower()
+    if mode not in ("none", "kimi"):
+        parser.error("SPARK_CHAT_PROVIDER must be none or kimi")
+    try:
+        provider = KimiProvider.from_env() if mode == "kimi" else None
+    except ValueError as error:
+        parser.error(str(error))
+    Handler.app = App(args.db, chat_provider=provider)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"Mock engine listening on http://127.0.0.1:{args.port}/api/v1", flush=True)
+    print(f"Local engine (project analysis: mock; agent: {mode}) listening on http://127.0.0.1:{args.port}/api/v1", flush=True)
     server.serve_forever()
 
 

@@ -36,7 +36,7 @@ const state = {
 };
 const app = document.querySelector('#app');
 const overlay = document.querySelector('#overlay-root');
-const agent = createAgentConversation({ storage, workflow, onRender: () => { if (state.view === 'chat') shell(); }, onPoll: delay => schedulePolling(delay), onInsight: id => openLiveInsight(id), onOverview: () => { state.view = 'overview'; location.hash = 'overview'; shell(); }, onConnect: () => openConnection() });
+const agent = createAgentConversation({ storage, workflow, onRender: () => { if (state.view === 'chat') shell(); }, onPoll: delay => schedulePolling(delay), onInsight: id => { state.workspace = 'own'; openLiveInsight(id); }, onEvidence: citation => { state.workspace = 'own'; openServerRecord(citation.record_id, citation); }, onOverview: () => { state.view = 'overview'; setWorkspace('own'); location.hash = 'overview'; }, onConnect: () => openConnection() });
 const assistant = createFrogAssistant({ storage, getContext: () => ({ workspace: state.workspace, connected: workflow.connected, activeJob: workflow.state.active_job, lastJob: workflow.state.last_job, overview: workflow.state.overview, error: workflow.error, hasMaterials: materialRows(workflow).length > 0, engineMode: workflow.health?.engine_mode || workflow.state.overview?.engine_mode, projectId: workflow.state.project?.id }) });
 const historyView = createHistoryView({
   getContext: () => ({ workspace: state.workspace, projectId: state.workspace === 'demo' ? 'prj_demo' : workflow.state.project?.id, baseUrl: state.workspace === 'demo' ? 'synthetic' : workflow.state.base_url, connected: state.workspace === 'demo' || workflow.connected, api: workflow.api }),
@@ -333,6 +333,7 @@ document.addEventListener('click', event => {
   if (element.dataset.agentAction) { agent.handleAction(element.dataset.agentAction); return; }
   if (element.dataset.agentMode) { agent.handleMode(element.dataset.agentMode); return; }
   if (element.dataset.agentInsight) { agent.handleInsight(element.dataset.agentInsight); return; }
+  if (element.dataset.agentEvidence) { agent.handleEvidence(element.dataset.agentEvidence); return; }
   if (element.dataset.designVersion && state.workspace === 'design') {
     const version = Number(element.dataset.designVersion); if (![1, 2].includes(version)) return;
     closeDialog(); state.designVersion = version; shell();
@@ -416,4 +417,4 @@ document.addEventListener('submit', event => { if (event.target.id === 'agent-fo
 document.addEventListener('keydown', event => { if (event.target.id === 'agent-input' && event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); document.querySelector('#agent-form')?.requestSubmit(); } });
 window.addEventListener('hashchange', () => { state.view = workspaceView(); state.query = ''; shell(); });
 shell();
-if (workflow.state.project || workflow.state.active_job) workflow.connect().then(() => schedulePolling(0)).catch(() => shell());
+workflow.connect().then(() => schedulePolling(0)).catch(() => shell());
