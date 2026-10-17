@@ -12,7 +12,7 @@ export const SPARKY_PALETTES = Object.freeze({
 
 const MODEL_URL = new URL('./assets/sparky.glb', import.meta.url).href;
 const FALLBACK_URL = new URL('./assets/sparky-fallback.png', import.meta.url).href;
-const VIEWS = Object.freeze({ front: [0, 2.25, 5.5], side: [5.5, 2.25, 0], back: [0, 2.25, -5.5] });
+const VIEWS = Object.freeze({ front: [0, 2.15, 6.7], side: [6.7, 2.15, 0], back: [0, 2.15, -6.7] });
 
 /** Loads a real GLB. All motion is JS node animation; the GLB contains no clips. */
 export async function mountSparky(host, { state = 'idle', color = 'leaf', onReady = () => {} } = {}) {
@@ -56,7 +56,7 @@ export async function mountSparky(host, { state = 'idle', color = 'leaf', onRead
     palette = next;
     if (rig) {
       rig.skin.color.set(values.body);
-      rig.shade.color.set(values.body).multiplyScalar(0.77);
+      rig.shade?.color.set(values.body).multiplyScalar(0.77);
       rig.belly.color.set(values.belly);
     }
   }
@@ -65,7 +65,7 @@ export async function mountSparky(host, { state = 'idle', color = 'leaf', onRead
     if (!Object.hasOwn(VIEWS, view)) throw new TypeError('Unknown view');
     if (!camera || !controls) return;
     camera.position.set(...VIEWS[view]);
-    controls.target.set(0, 1.55, 0);
+    controls.target.set(0, 1.48, 0);
     controls.update();
   }
 
@@ -147,7 +147,7 @@ export async function mountSparky(host, { state = 'idle', color = 'leaf', onRead
     rig.shade = materials.get('SkinShade');
     rig.belly = materials.get('Belly');
     rig.gold = materials.get('GoldSpark');
-    if ([rig.skin, rig.shade, rig.belly, rig.gold].some(item => !item)) throw new Error('Required model material missing');
+    if ([rig.skin, rig.belly, rig.gold].some(item => !item)) throw new Error('Required model material missing');
     setColor(palette);
     status.textContent = '真实 GLB 已加载，可拖动旋转';
     onReady({ model, nodes: rig, triangles: model.userData.triangles ?? null });
@@ -179,7 +179,7 @@ export async function mountSparky(host, { state = 'idle', color = 'leaf', onRead
     }
     if (currentState === 'complete') {
       rig.head.rotation.x = motion ? .12 * Math.sin(Math.min(elapsed, 1.1) * 13) * Math.max(0, 1 - elapsed / 1.1) : 0;
-      rig.rightArm.rotation.z = motion ? .24 * Math.sin(Math.min(elapsed, 1.4) * 15) * Math.max(0, 1 - elapsed / 1.4) : 0;
+      rig.rightArm.rotation.z = motion ? .45 * Math.min(1, elapsed / .12) * (1 + .35 * Math.sin(elapsed * 14)) * Math.max(0, 1 - elapsed / 1.7) : .25;
     }
     controls.update();
     renderer.render(scene, camera);

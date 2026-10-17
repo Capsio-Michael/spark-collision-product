@@ -29,7 +29,7 @@ for accessor in data["accessors"]:
 nodes = {item["name"]: item for item in data["nodes"]}
 for name in (
     "SparkyRoot", "BodyBreath", "HeadRig", "Eye_L_Rig", "Eye_R_Rig",
-    "Arm_R_Rig", "ForeheadSpark", "PearBody", "BackContour",
+    "Arm_R_Rig", "ForeheadSpark", "PearBody", "CreamBelly", "SmileLine",
     "EyeWhite_L", "EyeWhite_R", "Foot_L", "Foot_R",
 ):
     assert name in nodes, name
@@ -40,6 +40,6 @@ for side in "LR":
 material_names = {item["name"] for item in data["materials"]}
 assert {"Skin", "SkinShade", "Belly", "GoldSpark"} <= material_names
 assert len(data["meshes"]) >= 10
-assert len(data["nodes"]) >= 50
+assert len(data["nodes"]) >= 45
 assert not data.get("animations"), "Animation is driven by the viewer and documented as such"
 print(f"PASS {path.name}: {len(blob)} bytes, {len(nodes)} named nodes, {len(data['meshes'])} meshes, embedded binary only")

@@ -139,6 +139,63 @@ meshes.append({"name": "FourPointSpark", "primitives": [{
 star_mesh = len(meshes) - 1
 
 
+def belly_patch_geometry():
+    """A curved surface patch follows the torso instead of floating as a slab."""
+    positions, normals, indices = [], [], []
+    rows, columns = 20, 24
+    for row in range(rows + 1):
+        v = -1 + 2 * row / rows
+        y = 1.17 + .68 * v
+        width = .465 * math.sqrt(max(0, 1 - v * v))
+        for col in range(columns + 1):
+            x = width * (-1 + 2 * col / columns)
+            z = .51 * math.sqrt(max(.001, 1 - (x / .64) ** 2 - ((y - 1.16) / .85) ** 2)) + .017
+            positions.extend((x, y, z))
+            n = (x / .64 ** 2, (y - 1.16) / .85 ** 2, (z - .017) / .51 ** 2)
+            length = math.sqrt(sum(component * component for component in n))
+            normals.extend(component / length for component in n)
+    for row in range(rows):
+        for col in range(columns):
+            a = row * (columns + 1) + col
+            b, c, d = a + 1, a + columns + 1, a + columns + 2
+            indices.extend((a, b, c, b, d, c))
+    return positions, normals, indices
+
+
+belly_accessors = geometry_accessors(*belly_patch_geometry())
+meshes.append({"name": "CurvedBellyPatch", "primitives": [{
+    "attributes": {"POSITION": belly_accessors[0], "NORMAL": belly_accessors[1]},
+    "indices": belly_accessors[2], "material": material_index["Belly"], "mode": 4,
+}]})
+belly_mesh = len(meshes) - 1
+
+
+def smile_line_geometry():
+    """One continuous dark ribbon on the curved green muzzle."""
+    positions, normals, indices = [], [], []
+    segments = 48
+    for i in range(segments + 1):
+        x = -.55 + 1.10 * i / segments
+        y = -.29 + .10 * (abs(x) / .55) ** 2
+        for dy in (.008, -.008):
+            yy = y + dy
+            z = .37 + .39 * math.sqrt(1 - (x / .78) ** 2 - ((yy + .24) / .34) ** 2) + .021
+            positions.extend((x, yy, z))
+            normals.extend((0, 0, 1))
+    for i in range(segments):
+        a = 2 * i
+        indices.extend((a, a + 1, a + 2, a + 1, a + 3, a + 2))
+    return positions, normals, indices
+
+
+smile_accessors = geometry_accessors(*smile_line_geometry())
+meshes.append({"name": "ContinuousSmile", "primitives": [{
+    "attributes": {"POSITION": smile_accessors[0], "NORMAL": smile_accessors[1]},
+    "indices": smile_accessors[2], "material": material_index["Mouth"], "mode": 4,
+}]})
+smile_mesh = len(meshes) - 1
+
+
 def node(name, parent=None, material=None, position=None, scale=None, rotation=None, mesh=None):
     item = {"name": name}
     if material is not None:
@@ -165,13 +222,12 @@ def zrot(angle):
 root = node("SparkyRoot")
 breath = node("BodyBreath", root)
 node("PearBody", breath, "Skin", (0, 1.16, 0), (.64, .85, .51))
-node("CreamBelly", breath, "Belly", (0, 1.15, .435), (.49, .67, .17))
-node("BackContour", breath, "SkinShade", (0, .94, -.31), (.55, .48, .24))
+node("CreamBelly", breath, mesh=belly_mesh)
 
 head = node("HeadRig", root, position=(0, 2.17, .02))
 node("HeadVolume", head, "Skin", (0, 0, 0), (.83, .61, .62))
 node("LowerMuzzle", head, "Skin", (0, -.24, .37), (.78, .34, .39))
-node("CreamChin", head, "Belly", (0, -.42, .43), (.67, .19, .29))
+node("CreamChin", head, "Belly", (0, -.45, .50), (.71, .29, .32))
 for side, label in ((-1, "L"), (1, "R")):
     x = side * .53
     node(f"EyeMound_{label}", head, "Skin", (x, .40, .25), (.30, .32, .30))
@@ -180,13 +236,9 @@ for side, label in ((-1, "L"), (1, "R")):
     node(f"Iris_{label}", eye, "Iris", (side * -.025, -.018, .145), (.17, .19, .075))
     node(f"Pupil_{label}", eye, "Pupil", (side * -.026, -.02, .205), (.115, .14, .043))
     node(f"EyeGlint_{label}", eye, "Highlight", (side * -.068, .055, .235), (.037, .038, .025))
-    node(f"Nostril_{label}", head, "Mouth", (side * .14, -.075, .632), (.032, .017, .012))
-    node(f"Cheek_{label}", head, "SkinShade", (side * .60, -.24, .41), (.08, .05, .025))
+    node(f"Nostril_{label}", head, "Mouth", (side * .14, -.075, .724), (.029, .017, .011))
 
-for i in range(10):
-    x = -.46 + .92 * i / 9
-    y = -.25 + .14 * (abs(x) / .46) ** 2
-    node(f"SmileCurve_{i:02d}", head, "Mouth", (x, y, .725 - .06 * (abs(x) / .46)), (.063, .021, .018))
+node("SmileLine", head, mesh=smile_mesh)
 
 node("ForeheadSpark", head, mesh=star_mesh, position=(0, .18, .625), scale=(.155, .155, .155))
 
