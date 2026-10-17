@@ -22,8 +22,8 @@
 
 每个结果都能追到输入片段；材料中的事实、他人观点、AI 推断和已批准行动分开存放与显示。未提到某话题不等于不感兴趣，没有依据就可以没有新火花。所有任务须先在协作文档认领，今天优先完成可演示的纵向闭环。
 
-## 给开发同事的共享方式
+## 两人并行开发
 
-工作目录上一级可生成两种本地文件：`spark-collision-product-docs.zip` 适合直接阅读这六份文档；`spark-collision-product.bundle` 适合继续 Git 协作，包含 `main` 和 `work/product-definition` 及提交历史。通过你信任的文件传输方式把所需文件交给同事即可；仓库没有远程地址。
+私有 GitHub 仓库：`https://github.com/Capsio-Michael/spark-collision-product`。获得仓库访问权限后，同事可执行 `git clone https://github.com/Capsio-Michael/spark-collision-product.git`。`main` 放已确认的共同基线；`work/product-definition` 保留定义阶段记录。建议用户在 `work/engine-service` 开发后端引擎与服务，同事在 `work/interaction-ux` 开发交互与用户体验；两人先按 [协作分工](docs/collaboration.md) 约定最小接口，再各自提交到自己的分支，通过 Pull Request 合入 `main`。分支只表示工作范围，不代表任务已经实现。
 
-同事收到 bundle 后，可在自己的电脑执行 `git clone spark-collision-product.bundle spark-collision-product`，再进入目录执行 `git switch work/product-definition`。共同确认分工和最小接口后，再从该分支创建各自的开发分支。ZIP 仅供阅读，不含 Git 历史。两种文件均只包含本仓库的定义文档，不含客户材料。
+上一级目录的 `spark-collision-product-docs.zip` 适合离线阅读定义文档；`spark-collision-product.bundle` 是创建远程仓库之前的本地历史备份，后续协作请以 GitHub 为准。不要提交凭据或客户私密材料。
