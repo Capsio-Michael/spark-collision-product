@@ -20,6 +20,8 @@ import { validateSource } from './insight-detail-model.js';
 import { getDesignSnapshot, designMarkdown } from './design-review-model.js';
 import { renderDesignOverview, renderDesignMaterials, renderDesignHistory, openDesignInsight } from './design-review-view.js';
 import { createFrogAssistant } from './frog-assistant.js';
+import { ChatComposer } from './chat-home-model.js';
+import { renderChatHome } from './chat-home-view.js';
 
 let storage;
 try { storage = window.localStorage; } catch { storage = { getItem() { throw new Error('Storage unavailable'); }, setItem() { throw new Error('Storage unavailable'); } }; }
@@ -33,9 +35,10 @@ const state = {
   overview: getDemoOverview(), drafts: workflow.state.drafts, storageError: workflow.storageError,
   selectedMaterials: new Set(), liveEvidence: [],
 };
+const chat = new ChatComposer(storage, { onChange: () => shell() });
 const app = document.querySelector('#app');
 const overlay = document.querySelector('#overlay-root');
-const assistant = createFrogAssistant({ storage, getContext: () => ({ workspace: state.workspace, connected: workflow.connected, activeJob: workflow.state.active_job, lastJob: workflow.state.last_job, overview: workflow.state.overview, error: workflow.error, hasMaterials: materialRows(workflow).length > 0, engineMode: workflow.health?.engine_mode || workflow.state.overview?.engine_mode, projectId: workflow.state.project?.id }) });
+const assistant = createFrogAssistant({ storage, getContext: () => ({ workspace: state.view === 'chat' ? (chat.exampleVersion ? 'design' : 'own') : state.workspace, connected: workflow.connected, activeJob: workflow.state.active_job, lastJob: workflow.state.last_job, overview: workflow.state.overview, error: workflow.error, hasMaterials: materialRows(workflow).length > 0, engineMode: workflow.health?.engine_mode || workflow.state.overview?.engine_mode, projectId: workflow.state.project?.id }) });
 const historyView = createHistoryView({
   getContext: () => ({ workspace: state.workspace, projectId: state.workspace === 'demo' ? 'prj_demo' : workflow.state.project?.id, baseUrl: state.workspace === 'demo' ? 'synthetic' : workflow.state.base_url, connected: state.workspace === 'demo' || workflow.connected, api: workflow.api }),
   onOpenDetail: options => { closeDialog(); openInsightDetail({ ...options, readOnly: true }); },
@@ -43,7 +46,7 @@ const historyView = createHistoryView({
 });
 let returnFocus = null;
 let activeExport = null, activeExportContext = null;
-function workspaceView() { return location.hash === '#history' ? 'history' : location.hash === '#materials' ? 'materials' : 'overview'; }
+function workspaceView() { return location.hash === '#history' ? 'history' : location.hash === '#materials' ? 'materials' : location.hash === '#results' ? 'overview' : 'chat'; }
 
 function exportContextKey() { return JSON.stringify([state.workspace, workflow.state.project?.id, workflow.state.base_url, workflow.connected]); }
 function openExport() {
@@ -96,6 +99,8 @@ function sidebar() {
 }
 
 function shell() {
+  state.drafts = workflow.state.drafts;
+  if (state.view === 'chat') { renderChatShell(); return; }
   if (state.workspace === 'design') { renderDesignShell(); return; }
   if (activeExport && activeExportContext !== exportContextKey()) activeExport.close();
   state.drafts = workflow.state.drafts;
@@ -111,6 +116,27 @@ function shell() {
   if (state.view === 'history') historyView.renderInto(document.querySelector('#history-root'));
   else historyView.deactivate();
   assistant.sync();
+}
+
+function renderChatShell() {
+  if (activeExport && activeExportContext !== exportContextKey()) activeExport.close();
+  historyView.deactivate();
+  state.workspace = chat.exampleVersion ? 'design' : 'own';
+  app.innerHTML = renderChatHome(chat, workflow);
+  assistant.sync();
+  const form = app.querySelector('#conversation-form');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    await chat.send(workflow); schedulePolling(0);
+  });
+  form.querySelector('input[type="file"]').addEventListener('change', event => chat.addFiles([...event.target.files]));
+  const zone = form.querySelector('.conversation-drop-zone');
+  zone.addEventListener('dragover', event => { event.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', event => { if (!zone.contains(event.relatedTarget)) zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', event => { event.preventDefault(); zone.classList.remove('drag-over'); chat.addFiles([...event.dataTransfer.files]); });
+  form.querySelector('#conversation-text').addEventListener('input', event => { chat.text = event.target.value; chat.persist(); });
+  form.querySelector('#conversation-basis').addEventListener('change', event => { chat.basis = event.target.value; chat.persist(); shell(); });
+  form.querySelector('#conversation-authorization')?.addEventListener('input', event => { chat.authorization = event.target.value; chat.persist(); });
 }
 
 function renderDesignShell() {
@@ -326,6 +352,12 @@ async function openLiveInsight(id, showSpark = false) {
 
 document.addEventListener('click', event => {
   const element = event.target.closest('button'); if (!element || element.disabled) return;
+  if (element.dataset.chatExample) { chat.exampleVersion = Number(element.dataset.chatExample); if (![1, 2].includes(chat.exampleVersion)) chat.exampleVersion = 1; shell(); return; }
+  if (element.hasAttribute('data-chat-dismiss')) { chat.exampleVersion = null; shell(); return; }
+  if (element.dataset.chatInsight && chat.exampleVersion) { openDesignInsight(element.dataset.chatInsight, chat.exampleVersion, { openDialog, dialogHeader }); return; }
+  if (element.dataset.chatRemove) { chat.removeFile(element.dataset.chatRemove); return; }
+  if (element.hasAttribute('data-chat-resume')) { chat.send(workflow, true).then(() => schedulePolling(0)); return; }
+  if (element.hasAttribute('data-chat-existing')) { state.view = 'overview'; state.workspace = 'own'; location.hash = 'results'; shell(); return; }
   if (element.dataset.designVersion && state.workspace === 'design') {
     const version = Number(element.dataset.designVersion); if (![1, 2].includes(version)) return;
     closeDialog(); state.designVersion = version; shell();
@@ -379,7 +411,7 @@ document.addEventListener('click', event => {
     case 'analyze-selected': analyzeMaterials(materialRows(workflow).filter(row => row.status === 'saved' && state.selectedMaterials.has(row.id)).map(row => row.server.id)); break;
     case 'retry-analysis': analyzeMaterials(workflow.state.pending.analysis?.body.record_ids || []); break;
     case 'refresh-job': schedulePolling(0); break;
-    case 'show-results': state.view = 'overview'; setWorkspace('own'); location.hash = 'overview'; break;
+    case 'show-results': state.view = 'chat'; setWorkspace('own'); location.hash = 'overview'; break;
     case 'clear-filter': state.query = ''; state.filter = 'all'; shell(); document.querySelector('#insight-search')?.focus(); break;
   }
 });
