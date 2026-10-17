@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const port = Number(process.env.PORT || 5173);
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
+const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png' };
 const server = http.createServer(async (request, response) => {
   if (!['GET', 'HEAD'].includes(request.method)) {
     response.writeHead(405, { Allow: 'GET, HEAD' }).end();
@@ -23,7 +23,7 @@ const server = http.createServer(async (request, response) => {
     }
     const bytes = await readFile(target);
     response.writeHead(200, {
-      'Content-Type': `${mime[path.extname(target)] || 'application/octet-stream'}; charset=utf-8`,
+      'Content-Type': `${mime[path.extname(target)] || 'application/octet-stream'}${['.html', '.js', '.css', '.svg'].includes(path.extname(target)) ? '; charset=utf-8' : ''}`,
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://127.0.0.1:* http://localhost:*; object-src 'none'; base-uri 'none'",

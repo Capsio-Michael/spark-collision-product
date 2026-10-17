@@ -20,6 +20,7 @@ import { validateSource } from './insight-detail-model.js';
 import { getDesignSnapshot, designMarkdown } from './design-review-model.js';
 import { renderDesignOverview, renderDesignMaterials, renderDesignHistory, openDesignInsight } from './design-review-view.js';
 import { createFrogAssistant } from './frog-assistant.js';
+import { createAgentConversation } from './agent-conversation.js';
 
 let storage;
 try { storage = window.localStorage; } catch { storage = { getItem() { throw new Error('Storage unavailable'); }, setItem() { throw new Error('Storage unavailable'); } }; }
@@ -27,7 +28,7 @@ const workflow = new MaterialWorkflow(storage, { onChange: () => shell() });
 let preferredWorkspace;
 try { preferredWorkspace = storage.getItem('spark-collision:workspace'); } catch { /* Draft storage warning is surfaced below. */ }
 const state = {
-  workspace: ['design', 'demo', 'own'].includes(preferredWorkspace) ? preferredWorkspace : workflow.state.drafts.length ? 'own' : 'design',
+  workspace: ['design', 'demo', 'own'].includes(preferredWorkspace) ? preferredWorkspace : 'own',
   designVersion: 1,
   view: workspaceView(), filter: 'all', query: '',
   overview: getDemoOverview(), drafts: workflow.state.drafts, storageError: workflow.storageError,
@@ -35,6 +36,7 @@ const state = {
 };
 const app = document.querySelector('#app');
 const overlay = document.querySelector('#overlay-root');
+const agent = createAgentConversation({ storage, workflow, onRender: () => { if (state.view === 'chat') shell(); }, onPoll: delay => schedulePolling(delay), onInsight: id => openLiveInsight(id), onOverview: () => { state.view = 'overview'; location.hash = 'overview'; shell(); }, onConnect: () => openConnection() });
 const assistant = createFrogAssistant({ storage, getContext: () => ({ workspace: state.workspace, connected: workflow.connected, activeJob: workflow.state.active_job, lastJob: workflow.state.last_job, overview: workflow.state.overview, error: workflow.error, hasMaterials: materialRows(workflow).length > 0, engineMode: workflow.health?.engine_mode || workflow.state.overview?.engine_mode, projectId: workflow.state.project?.id }) });
 const historyView = createHistoryView({
   getContext: () => ({ workspace: state.workspace, projectId: state.workspace === 'demo' ? 'prj_demo' : workflow.state.project?.id, baseUrl: state.workspace === 'demo' ? 'synthetic' : workflow.state.base_url, connected: state.workspace === 'demo' || workflow.connected, api: workflow.api }),
@@ -43,7 +45,7 @@ const historyView = createHistoryView({
 });
 let returnFocus = null;
 let activeExport = null, activeExportContext = null;
-function workspaceView() { return location.hash === '#history' ? 'history' : location.hash === '#materials' ? 'materials' : 'overview'; }
+function workspaceView() { return location.hash === '#history' ? 'history' : location.hash === '#materials' ? 'materials' : location.hash === '#overview' ? 'overview' : 'chat'; }
 
 function exportContextKey() { return JSON.stringify([state.workspace, workflow.state.project?.id, workflow.state.base_url, workflow.connected]); }
 function openExport() {
@@ -82,10 +84,11 @@ function notify(text) {
 
 function sidebar() {
   return `<aside class="sidebar" aria-label="项目导航">
-    <a class="brand" href="#overview" aria-label="智慧火花碰撞首页"><span class="brand-icon">${icon('spark')}</span><span>智慧火花碰撞<small>SPARK COLLISION</small></span></a>
+    <a class="brand" href="#chat" aria-label="智慧火花碰撞首页"><span class="brand-icon">${icon('spark')}</span><span>智慧火花碰撞<small>SPARK COLLISION</small></span></a>
     <div class="project-switch"><label for="workspace-select">当前项目</label><div class="select-wrap"><select id="workspace-select"><option value="design" ${state.workspace === 'design' ? 'selected' : ''}>设计评审 · 预置演示</option><option value="demo" ${state.workspace === 'demo' ? 'selected' : ''}>报价授权边界调研 · 示例</option><option value="own" ${state.workspace === 'own' ? 'selected' : ''}>${e(workflow.state.project?.name || '我的调研项目')}</option></select>${icon('down')}</div></div>
     <div class="nav-label">工作空间</div>
     <nav>
+      <a href="#chat" class="nav-item ${state.view === 'chat' ? 'active' : ''}" ${state.view === 'chat' ? 'aria-current="page"' : ''}>${icon('spark')}<span>与 Sparky 对话</span></a>
       <a href="#overview" class="nav-item ${state.view === 'overview' ? 'active' : ''}" ${state.view === 'overview' ? 'aria-current="page"' : ''}>${icon('grid')}<span>项目总览</span></a>
       <a href="#materials" class="nav-item ${state.view === 'materials' ? 'active' : ''}" ${state.view === 'materials' ? 'aria-current="page"' : ''}>${icon('file')}<span>材料列表</span><span class="nav-count">${state.workspace === 'demo' ? state.overview.source_record_ids.length : materialRows(workflow).length}</span></a>
       <a href="#history" class="nav-item ${state.view === 'history' ? 'active' : ''}" ${state.view === 'history' ? 'aria-current="page"' : ''}>${icon('history')}<span>认知历史</span></a>
@@ -96,6 +99,7 @@ function sidebar() {
 }
 
 function shell() {
+  if (state.view === 'chat') { historyView.deactivate(); app.innerHTML = agent.render(); const feed = app.querySelector('#agent-feed'); if (feed) feed.scrollTop = feed.scrollHeight; return; }
   if (state.workspace === 'design') { renderDesignShell(); return; }
   if (activeExport && activeExportContext !== exportContextKey()) activeExport.close();
   state.drafts = workflow.state.drafts;
@@ -326,6 +330,9 @@ async function openLiveInsight(id, showSpark = false) {
 
 document.addEventListener('click', event => {
   const element = event.target.closest('button'); if (!element || element.disabled) return;
+  if (element.dataset.agentAction) { agent.handleAction(element.dataset.agentAction); return; }
+  if (element.dataset.agentMode) { agent.handleMode(element.dataset.agentMode); return; }
+  if (element.dataset.agentInsight) { agent.handleInsight(element.dataset.agentInsight); return; }
   if (element.dataset.designVersion && state.workspace === 'design') {
     const version = Number(element.dataset.designVersion); if (![1, 2].includes(version)) return;
     closeDialog(); state.designVersion = version; shell();
@@ -384,6 +391,9 @@ document.addEventListener('click', event => {
   }
 });
 document.addEventListener('change', event => {
+  if (event.target.id === 'agent-file') { agent.handleFile(event.target.files?.[0]); return; }
+  if (event.target.id === 'agent-basis') { agent.handleBasis(event.target.value); return; }
+  if (event.target.id === 'agent-consent') { agent.handleConsent(event.target.checked); return; }
   if (event.target.id === 'workspace-select') setWorkspace(event.target.value);
   if (event.target.dataset.materialSelect) {
     if (event.target.checked) state.selectedMaterials.add(event.target.dataset.materialSelect);
@@ -395,12 +405,15 @@ document.addEventListener('change', event => {
   }
 });
 document.addEventListener('input', event => {
+  if (event.target.id === 'agent-input') { agent.handleInput(event.target.value); return; }
   if (event.target.id !== 'insight-search') return;
   state.query = event.target.value;
   const own = state.workspace === 'own', overview = workflow.state.overview;
   document.querySelector('#insight-results').innerHTML = own ? renderProjectInsights(overview, state.query, state.filter) : renderInsightCards();
   announce(`${own ? filterProjectInsights(overview, state.query, state.filter).length : filterInsights(state.overview.insights, state.query, state.filter, state.overview.evidence, state.overview.snapshot_version).length} 个匹配的关注点`);
 });
+document.addEventListener('submit', event => { if (event.target.id === 'agent-form') agent.handleSubmit(event); });
+document.addEventListener('keydown', event => { if (event.target.id === 'agent-input' && event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); document.querySelector('#agent-form')?.requestSubmit(); } });
 window.addEventListener('hashchange', () => { state.view = workspaceView(); state.query = ''; shell(); });
 shell();
 if (workflow.state.project || workflow.state.active_job) workflow.connect().then(() => schedulePolling(0)).catch(() => shell());
