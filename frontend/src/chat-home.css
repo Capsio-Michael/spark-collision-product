@@ -23,7 +23,6 @@
 .user-message { background: #edf2e6; color: #647357; margin-left: auto; max-width: 85%; }
 .user-message > span { flex: 1; }
 .user-message .chat-dismiss-run { align-self: flex-start; flex-shrink: 0; border: 0; background: transparent; color: #6e815e; font-size: 11px; padding: 2px 4px; }
-.conversation-undo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 11px; color: #8c9981; margin: 15px 0; }
 .assistant-message { background: white; border: 1px solid #e5ebdf; }
 .conversation-answer { margin: 28px 0; }
 .answer-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 10px; color: #89977b; }

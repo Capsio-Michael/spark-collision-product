@@ -2,18 +2,40 @@
 param(
     [ValidateRange(1024, 65535)][int]$Port = 8000,
     [string]$Model = 'kimi-k2.5',
-    [string]$Database = 'var/kimi-live.db'
+    [string]$Database = 'var/kimi-live.db',
+    [switch]$CheckOnly
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$pythonCommand = Get-Command python -ErrorAction SilentlyContinue
-$pythonPath = if ($pythonCommand) { $pythonCommand.Source } else {
-    Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+$bundledPython = Join-Path $env:USERPROFILE '.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'
+$candidates = @($bundledPython)
+foreach ($commandName in @('python', 'python3')) {
+    $candidates += @(Get-Command $commandName -CommandType Application -All -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
 }
-if (-not (Test-Path -LiteralPath $pythonPath)) { throw 'Python was not found. Install Python 3 or use the bundled Codex runtime.' }
-if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
+$pythonPath = $null
+foreach ($candidate in ($candidates | Select-Object -Unique)) {
+    # WindowsApps may resolve to an installation shortcut, not a working Python.
+    if (-not $candidate -or $candidate -match '\\WindowsApps\\' -or -not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+    try {
+        & $candidate -X utf8 -c 'import sys, sqlite3; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) { $pythonPath = $candidate; break }
+    } catch { continue }
+}
+if (-not $pythonPath) { throw 'No working Python 3.10+ was found. Install Python or restore the bundled Codex runtime before entering your API key.' }
+Write-Host 'Python:' $pythonPath
+if ($CheckOnly) {
+    & $pythonPath -X utf8 --version
+    Write-Host 'Runtime check passed. No API key was requested and no server was started.'
+    return
+}
+$portProbe = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
+try {
+    $portProbe.Start()
+} catch {
     throw "Port $Port is occupied. Stop the old engine first, or use -Port with a free port."
+} finally {
+    $portProbe.Stop()
 }
 
 Write-Host 'Kimi China / model:' $Model

@@ -358,7 +358,6 @@ document.addEventListener('click', event => {
   if (element.dataset.chatInsight && chat.exampleVersion) { openDesignInsight(element.dataset.chatInsight, chat.exampleVersion, { openDialog, dialogHeader }); return; }
   if (element.dataset.chatRemove) { chat.removeFile(element.dataset.chatRemove); return; }
   if (element.hasAttribute('data-chat-dismiss-run')) { chat.dismissRun(); return; }
-  if (element.hasAttribute('data-chat-restore-run')) { chat.restoreRun(); return; }
   if (element.hasAttribute('data-chat-resume')) { chat.send(workflow, true).then(() => schedulePolling(0)); return; }
   if (element.hasAttribute('data-chat-existing')) { state.view = 'overview'; state.workspace = 'own'; location.hash = 'results'; shell(); return; }
   if (element.dataset.kimiCard) {

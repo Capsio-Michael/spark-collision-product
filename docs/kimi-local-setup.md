@@ -21,6 +21,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-kimi-local.ps1
 
 出现 `Kimi API Key (hidden)` 后粘贴 Key、回车即可。输入不会回显，也不进入命令历史；脚本只给本机后端进程设置变量，不写密钥文件。保持窗口开启，`Ctrl+C` 停止。中国区地址为 `https://api.moonshot.cn/v1`，默认模型 `kimi-k2.5`；按[官方模型说明](https://huggingface.co/moonshotai/Kimi-K2.5)设置即时模式和最多 4096 个输出 token。脚本使用独立数据库 `var/kimi-live.db`，不覆盖此前演示库。需要换端口可追加 `-Port 8001`，同时修改页面连接地址。
 
+脚本优先选择本机 Codex 附带的 Python，再查找系统 Python，跳过 WindowsApps 安装别名，并在询问 Key 前验证 Python 3.10+、SQLite 和端口。可追加 `-CheckOnly` 单独检查运行环境，不询问 Key，也不启动服务。旧版出现退出码 `9009` 时更新脚本后重试；启动失败会清除本次进程中的临时 Key，下次需要重新在隐藏提示中输入。
+
 前端可在另一终端运行：
 
 ```powershell
