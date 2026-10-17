@@ -18,6 +18,7 @@ from uuid import uuid4
 from .analysis import DIMENSIONS, build_analysis
 from .agent_analysis import AnalysisError, messages_for, validate_analysis
 from .kimi import KimiProvider, ProviderError
+from .knowledge import knowledge_detail, knowledge_items
 
 SHANGHAI = timezone(timedelta(hours=8))
 ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5201", "http://127.0.0.1:5201"}
@@ -279,6 +280,21 @@ class App:
             return 200, {"items": [record_summary(r, covered) for r in state["records"]]}, {}
         if method == "GET" and tail == "agent-analyses":
             return 200, {"items": deepcopy(state["agent_analyses"])}, {}
+        if method == "GET" and tail == "knowledge-items":
+            try:
+                items = knowledge_items(state)
+            except ValueError:
+                raise ApiError(500, "EVIDENCE_MISMATCH", "已保存结果的引文无法对应原文，停止展示洞察库") from None
+            return 200, {"items": items}, {}
+        knowledge_match = re.fullmatch(r"knowledge-items/([^/]+)", tail or "")
+        if method == "GET" and knowledge_match:
+            try:
+                detail = knowledge_detail(state, knowledge_match[1])
+            except ValueError:
+                raise ApiError(500, "EVIDENCE_MISMATCH", "已保存结果的引文无法对应原文，停止展示详情") from None
+            if detail is None:
+                raise ApiError(404, "KNOWLEDGE_ITEM_NOT_FOUND", "这条洞察不在当前结果范围")
+            return 200, detail, {}
         if method == "POST" and tail == "agent-analysis":
             if not self.chat_provider:
                 raise ApiError(503, "PROVIDER_NOT_CONFIGURED", "本机尚未配置 Kimi 分析服务")
@@ -305,7 +321,7 @@ class App:
                     raise ApiError(502, "MODEL_RESULT_INVALID", str(error)) from None
                 except ProviderError as error:
                     raise ApiError(502, error.code, error.message) from None
-                item = {"id": uid("agent"), "record_id": added_id, "created_at": now(), "provider": "kimi", "model": self.chat_provider.model, "result": result}
+                item = {"id": uid("agent"), "record_id": added_id, "version": len(prior) + 1, "created_at": now(), "provider": "kimi", "model": self.chat_provider.model, "result": result}
                 state["agent_analyses"].append(item)
                 return 201, item
             status, result, _ = self.store.mutate(f"{path}", key, body, analyze_with_kimi)

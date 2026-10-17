@@ -83,5 +83,7 @@ export function createApiClient(baseUrl = 'http://127.0.0.1:8000/api/v1') {
     chatStream,
     agentAnalysis: (id, recordId, allowExternalProcessing, key) => request(`${project(id)}/agent-analysis`, { method: 'POST', body: { record_id: recordId, allow_external_processing: allowExternalProcessing }, idempotencyKey: key }),
     agentAnalyses: id => request(`${project(id)}/agent-analyses`),
+    knowledgeItems: id => request(`${project(id)}/knowledge-items`),
+    knowledgeItem: (id, resultId) => request(`${project(id)}/knowledge-items/${segment(resultId)}`),
   };
 }

@@ -33,10 +33,11 @@ const state = {
   view: workspaceView(), filter: 'all', query: '',
   overview: getDemoOverview(), drafts: workflow.state.drafts, storageError: workflow.storageError,
   selectedMaterials: new Set(), liveEvidence: [],
+  knowledgeDetail: null, knowledgeLoading: false, knowledgeError: '',
 };
 const app = document.querySelector('#app');
 const overlay = document.querySelector('#overlay-root');
-const agent = createAgentConversation({ storage, workflow, onRender: () => { if (state.view === 'chat') shell(); }, onPoll: delay => schedulePolling(delay), onInsight: id => { state.workspace = 'own'; openLiveInsight(id); }, onEvidence: citation => { state.workspace = 'own'; openServerRecord(citation.record_id, citation); }, onOverview: () => { state.view = 'overview'; setWorkspace('own'); location.hash = 'overview'; }, onConnect: () => openConnection() });
+const agent = createAgentConversation({ storage, workflow, onRender: () => { if (state.view === 'chat') shell(); }, onPoll: delay => schedulePolling(delay), onInsight: id => { state.workspace = 'own'; openLiveInsight(id); }, onEvidence: citation => { state.workspace = 'own'; openServerRecord(citation.record_id, citation); }, onKnowledge: id => { state.workspace = 'own'; location.hash = `knowledge/${encodeURIComponent(id)}`; }, onOverview: () => { state.view = 'overview'; setWorkspace('own'); location.hash = 'overview'; }, onConnect: () => openConnection() });
 const assistant = createFrogAssistant({ storage, getContext: () => ({ workspace: state.workspace, connected: workflow.connected, activeJob: workflow.state.active_job, lastJob: workflow.state.last_job, overview: workflow.state.overview, error: workflow.error, hasMaterials: materialRows(workflow).length > 0, engineMode: workflow.health?.engine_mode || workflow.state.overview?.engine_mode, projectId: workflow.state.project?.id }) });
 const historyView = createHistoryView({
   getContext: () => ({ workspace: state.workspace, projectId: state.workspace === 'demo' ? 'prj_demo' : workflow.state.project?.id, baseUrl: state.workspace === 'demo' ? 'synthetic' : workflow.state.base_url, connected: state.workspace === 'demo' || workflow.connected, api: workflow.api }),
@@ -45,7 +46,35 @@ const historyView = createHistoryView({
 });
 let returnFocus = null;
 let activeExport = null, activeExportContext = null;
-function workspaceView() { return location.hash === '#history' ? 'history' : location.hash === '#materials' ? 'materials' : location.hash === '#overview' ? 'overview' : 'chat'; }
+function workspaceView() { return location.hash.startsWith('#knowledge/') ? 'knowledge' : location.hash === '#history' ? 'history' : location.hash === '#materials' ? 'materials' : location.hash === '#overview' ? 'overview' : 'chat'; }
+function currentKnowledgeId() { try { return decodeURIComponent(location.hash.slice('#knowledge/'.length)); } catch { return ''; } }
+async function loadKnowledge() {
+  const id = currentKnowledgeId(), projectId = workflow.state.project?.id;
+  if (!id || !projectId || !workflow.connected) { state.knowledgeError = '无法读取这条洞察，请先连接本机服务'; state.knowledgeLoading = false; shell(); return; }
+  state.knowledgeDetail = null; state.knowledgeError = ''; state.knowledgeLoading = true; shell();
+  try {
+    const detail = await workflow.api.knowledgeItem(projectId, id);
+    if (state.view !== 'knowledge' || currentKnowledgeId() !== id || workflow.state.project?.id !== projectId) return;
+    if (detail?.item?.id !== id) throw new Error('返回的洞察与所选卡片不一致');
+    if (detail.full_detail) {
+      const { insight_id: insightId, snapshot_version: version } = detail.full_detail;
+      const full = await workflow.api.insight(projectId, insightId, version);
+      if (full?.id !== insightId || full.snapshot_version !== version) throw new Error('完整分析与所选洞察版本不一致');
+      detail.full_analysis = full;
+    }
+    state.knowledgeDetail = detail;
+  } catch (error) { state.knowledgeError = error.message; }
+  finally { state.knowledgeLoading = false; if (state.view === 'knowledge' && currentKnowledgeId() === id) shell(); }
+}
+function renderKnowledgeShell() {
+  const detail = state.knowledgeDetail, item = detail?.item;
+  const kind = item?.origin === 'kimi' ? 'Kimi 引文分析' : '合成案例模拟结果';
+  const refs = detail?.citations || [];
+  const full = detail?.full_analysis;
+  const relations = { supports: '支持', qualifies: '补充条件', challenges: '质疑', contradicts: '反例', agrees: '认同' };
+  const detailed = full ? `<div class="knowledge-columns knowledge-extra"><section class="knowledge-section"><h2>会议内与跨会议标注</h2>${full.annotations?.length ? full.annotations.map(annotation => `<p>${e(annotation.meeting_id)} · ${e(relations[annotation.relation] || annotation.relation)}${annotation.condition ? ` · 条件：${e(annotation.condition)}` : ''}</p>`).join('') : '<p>暂无结构化标注</p>'}<h2>覆盖与重要性</h2><p>记录覆盖 ${e(full.coverage?.supporting_record_count ?? '未知')} / ${e(full.coverage?.total_analyzed_record_count ?? '未知')} · 会议 ${e(full.meeting_coverage?.distinct_meeting_count ?? '未知')} 场</p><p>${full.importance ? `示例优先阅读分数 ${e(full.importance.score)} / ${e(full.importance.max_score)} · ${e(full.importance.note)}` : '暂无有依据的重要性分数'}</p><p>趋同状态：${e({ conditions_unresolved: '条件仍待厘清', conditional_convergence: '有条件趋同', disputed: '仍有分歧' }[full.convergence_status] || '尚未判定')}</p></section><section class="knowledge-section"><h2>解释边界</h2><p>${e(full.judgment?.rationale || '暂无解释说明')}</p><h2>其他解释</h2>${full.judgment?.alternative_explanations?.length ? `<ul>${full.judgment.alternative_explanations.map(value => `<li>${e(value)}</li>`).join('')}</ul>` : '<p>暂无其他解释</p>'}<h2>下一步验证问题</h2>${full.validations?.length ? full.validations.map(value => `<p>${e(value.question)} · ${e(value.status === 'proposed' ? '建议待确认，非已批准行动' : value.status)}</p>`).join('') : '<p>暂无建议</p>'}</section></div>` : '';
+  app.innerHTML = `${sidebar()}<div class="workspace knowledge-workspace"><header class="topbar"><a class="text-button" href="#chat">← 返回对话</a><span class="mode">${item ? e(kind) : '洞察详情'}</span></header><main id="main-content" tabindex="-1" class="knowledge-main">${state.knowledgeLoading ? '<p>正在读取完整分析…</p>' : state.knowledgeError ? `<div class="alert" role="alert">${e(state.knowledgeError)} <button class="button secondary" data-action="retry-knowledge">重试读取</button></div>` : item ? `<div class="eyebrow">INSIGHT DETAIL · ${e(item.version_kind === 'agent_round' ? '独立分析轮次' : '项目快照')} ${e(item.version)}</div><h1>${e(item.title)}</h1><p class="knowledge-lead">${e(detail.judgment)}</p><div class="knowledge-provenance"><span>${e(kind)}</span><span>结果 ID ${e(item.id)}</span><span>${e(item.provenance?.model || item.provenance?.provider || '')}</span></div><div class="knowledge-columns"><section class="knowledge-section"><h2>这次理解了什么</h2><p>${e(item.one_line)}</p><h2>成立条件</h2>${detail.conditions?.length ? `<ul>${detail.conditions.map(condition => `<li>${e(condition)}</li>`).join('')}</ul>` : '<p>暂无单独标注的条件，需结合原话核查</p>'}<h2>追问与回应</h2><p>${e(detail.question_response_status)}</p><h2>跨会议变化</h2><p>${item.origin === 'kimi' ? '独立分析结果，尚未接入跨会议版本关系；不能据此判定趋同或重要性分数' : '本条来自项目模拟快照，可到项目总览核查版本与变化'}</p>${item.origin === 'mock' ? '<a class="button secondary" href="#overview">查看项目总览</a>' : ''}</section><section class="knowledge-section"><h2>原话依据 · ${refs.length} 条</h2>${refs.length ? refs.map((ref, index) => `<button type="button" class="knowledge-citation" data-knowledge-citation="${index}"><span>证据 ${index + 1} · ${e(ref.source_title)} · ${e(ref.segment_id)}</span><strong>“${e(ref.quote)}”</strong><em>定位原文 ↗</em></button>`).join('') : '<p>当前没有可展示的引文</p>'}</section></div>${detailed}` : '<p>请选择一条洞察卡片查看详情</p>'}</main></div>`;
+}
 
 function exportContextKey() { return JSON.stringify([state.workspace, workflow.state.project?.id, workflow.state.base_url, workflow.connected]); }
 function openExport() {
@@ -100,6 +129,7 @@ function sidebar() {
 
 function shell() {
   if (state.view === 'chat') { historyView.deactivate(); app.innerHTML = agent.render(); const feed = app.querySelector('#agent-feed'); if (feed) feed.scrollTop = feed.scrollHeight; return; }
+  if (state.view === 'knowledge') { historyView.deactivate(); renderKnowledgeShell(); return; }
   if (state.workspace === 'design') { renderDesignShell(); return; }
   if (activeExport && activeExportContext !== exportContextKey()) activeExport.close();
   state.drafts = workflow.state.drafts;
@@ -333,7 +363,9 @@ document.addEventListener('click', event => {
   if (element.dataset.agentAction) { agent.handleAction(element.dataset.agentAction); return; }
   if (element.dataset.agentMode) { agent.handleMode(element.dataset.agentMode); return; }
   if (element.dataset.agentInsight) { agent.handleInsight(element.dataset.agentInsight); return; }
+  if (element.dataset.agentKnowledgeId) { agent.handleKnowledge(element.dataset.agentKnowledgeId); return; }
   if (element.dataset.agentEvidence) { agent.handleEvidence(element.dataset.agentEvidence); return; }
+  if (element.dataset.knowledgeCitation) { const ref = state.knowledgeDetail?.citations?.[Number(element.dataset.knowledgeCitation)]; if (ref) { state.workspace = 'own'; openServerRecord(ref.record_id, ref); } return; }
   if (element.dataset.designVersion && state.workspace === 'design') {
     const version = Number(element.dataset.designVersion); if (![1, 2].includes(version)) return;
     closeDialog(); state.designVersion = version; shell();
@@ -381,6 +413,7 @@ document.addEventListener('click', event => {
     case 'materials': state.view = 'materials'; location.hash = 'materials'; shell(); break;
     case 'history': state.view = 'history'; location.hash = 'history'; shell(); break;
     case 'connect': openConnection(); break;
+    case 'retry-knowledge': loadKnowledge(); break;
     case 'undo-remove': try { workflow.restoreLast(); notify('最近移除的草稿已恢复。'); } catch (error) { notify(error.message); } break;
     case 'submit-selected': submitMaterials(materialRows(workflow).filter(row => row.status === 'draft' && state.selectedMaterials.has(row.id)).map(row => row.id)); break;
     case 'retry-import': submitMaterials(workflow.state.pending.import?.ids || workflow.state.pending.project?.ids || []); break;
@@ -415,6 +448,6 @@ document.addEventListener('input', event => {
 });
 document.addEventListener('submit', event => { if (event.target.id === 'agent-form') agent.handleSubmit(event); });
 document.addEventListener('keydown', event => { if (event.target.id === 'agent-input' && event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); document.querySelector('#agent-form')?.requestSubmit(); } });
-window.addEventListener('hashchange', () => { state.view = workspaceView(); state.query = ''; shell(); });
+window.addEventListener('hashchange', () => { state.view = workspaceView(); state.query = ''; shell(); if (state.view === 'knowledge') loadKnowledge(); });
 shell();
-workflow.connect().then(() => schedulePolling(0)).catch(() => shell());
+workflow.connect().then(() => { schedulePolling(0); if (state.view === 'knowledge') loadKnowledge(); }).catch(() => shell());

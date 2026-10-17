@@ -21,4 +21,6 @@ python3 -m engine.server --port 8000 --db var/spark.db
 
 对话使用 `POST /api/v1/chat/stream`，服务端只把最近的用户／助手消息交给 Kimi，不传工具或本机文件权限。对话回复不能冒充材料分析结果。分析用 `POST /api/v1/projects/{id}/agent-analysis`，接收已导入项目的 `record_id` 与 `allow_external_processing` 布尔值；获准材料必须由用户确认有权发送给 Kimi，服务端也会拒绝未确认请求。后端按原文件段落逐字核对每条引文，自己计算本轮新关注点、补充和修正数量。JSON 或引文不合格时返回错误且不保存。通过核对的结果存入 SQLite 的 `agent_analyses`，并在对话卡片中标为 **Kimi 引文分析**；它尚未并入旧版项目快照、六维总览、纠错和导出。旧 `POST /analyses` 及项目总览仍明确是 mock。
 
+对话中的每条结果只显示编号和一句洞察，点击后进入完整详情页。`GET /api/v1/projects/{id}/knowledge-items` 返回只读索引；`GET /api/v1/projects/{id}/knowledge-items/{resultId}` 返回当前卡片的条件、逐字引文和来源。结果 ID 带来源前缀：`mock@版本@洞察ID` 与 `kimi@分析ID@条目序号`，项目快照版本与 Kimi 独立轮次不混算。模拟结果的历史卡片仍指向原版本；Kimi 详情里的跨会议趋同和重要性分数在未接通前明确显示为未知。接口不会把两类历史合并成一个判断。
+
 本轮只用离线 stub 和合成案例测试了协议与界面，**没有使用真实 Key，也没有发起真实 Kimi 调用**。真正的模型表现、费用、跨场归纳质量和提示词需在用户完成本机配置后再单独验证。

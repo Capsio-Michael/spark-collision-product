@@ -12,3 +12,4 @@ var/
 .~*.pptx
 ~$*.pptx
 inputs/
+docs/kimi-local-env-template.md

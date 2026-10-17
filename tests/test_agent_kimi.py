@@ -60,7 +60,7 @@ class KimiAgentTests(unittest.TestCase):
         record = self.imported()
         full = self.app.call("GET", self.base + "/records/" + record["id"])[1]
         segment = full["segments"][1]
-        response = {"summary": "报价确认边界待核实", "outcome": "updated", "changes": [{"title": "报价确认边界", "type": "new", "reason": "提出人工确认", "judgment": "报价需要人工确认，适用条件仍待核实", "evidence": [{"record_id": full["id"], "segment_id": segment["id"], "quote": "报价需要人工确认"}]}]}
+        response = {"summary": "报价确认边界待核实", "outcome": "updated", "changes": [{"title": "报价确认边界", "type": "new", "reason": "提出人工确认", "judgment": "报价需要人工确认，适用条件仍待核实", "conditions": ["仅限已讨论的报价类型"], "evidence": [{"record_id": full["id"], "segment_id": segment["id"], "quote": "报价需要人工确认"}]}]}
         self.provider.responses = [json.dumps(response, ensure_ascii=False)]
         first = self.app.call("POST", self.base + "/agent-analysis", body={"record_id": record["id"], "allow_external_processing": False}, key="analyze")[1]
         second = self.app.call("POST", self.base + "/agent-analysis", body={"record_id": record["id"], "allow_external_processing": False}, key="analyze")[1]
@@ -70,6 +70,19 @@ class KimiAgentTests(unittest.TestCase):
         self.assertEqual(first["result"]["changes"][0]["evidence"][0]["meeting_id"], "M1")
         self.assertEqual(len(self.app.call("GET", self.base + "/agent-analyses")[1]["items"]), 1)
         self.assertEqual(self.app.call("GET", self.base + "/overview")[1]["snapshot_version"], 0)
+        cards = self.app.call("GET", self.base + "/knowledge-items")[1]["items"]
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]["id"], f"kimi@{first['id']}@0")
+        self.assertEqual(cards[0]["provenance"]["model"], "stub-model")
+        detail = self.app.call("GET", self.base + "/knowledge-items/" + cards[0]["id"])[1]
+        self.assertEqual(detail["citations"][0]["quote"], "报价需要人工确认")
+        self.assertEqual(detail["conditions"], ["仅限已讨论的报价类型"])
+        self.assertIsNone(detail["importance"])
+        self.assertEqual(detail["convergence_status"], "unknown")
+        self.app.call("POST", self.base + "/analyses", body={"record_ids": [record["id"]], "expected_version": 0}, key="mock-on-same-source")
+        mixed = self.app.call("GET", self.base + "/knowledge-items")[1]["items"]
+        self.assertEqual({entry["origin"] for entry in mixed}, {"mock", "kimi"})
+        self.assertEqual(self.app.call("GET", self.base + "/knowledge-items/" + cards[0]["id"])[1]["item"]["origin"], "kimi")
 
     def test_invalid_json_or_fabricated_quote_does_not_write(self):
         record = self.imported()
@@ -103,6 +116,7 @@ class KimiAgentTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "UPSTREAM_NETWORK_ERROR")
         result = self.app.call("POST", self.base + "/agent-analysis", body={"record_id": record["id"], "allow_external_processing": False}, key="empty")[1]
         self.assertEqual(result["result"]["counts"], {"new": 0, "supplemented": 0, "revised": 0})
+        self.assertEqual(self.app.call("GET", self.base + "/knowledge-items")[1]["items"], [])
 
     def test_authorized_material_requires_explicit_external_processing_flag(self):
         raw = item(1)

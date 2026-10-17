@@ -47,6 +47,27 @@ class ServiceTests(unittest.TestCase):
     def analyze(self, ids, version):
         return self.call("POST", "/analyses", body={"record_ids": ids, "expected_version": version}, key=f"analyze-{version}")
 
+    def test_knowledge_cards_keep_old_versions_and_exact_sources(self):
+        first = self.import_items([1, 2])
+        self.analyze(first, 0)
+        early = self.call("GET", "/knowledge-items")["items"]
+        self.assertTrue(early)
+        self.assertTrue(all(entry["id"].startswith("mock@1@") for entry in early))
+        third = self.import_items([3])
+        self.analyze(third, 1)
+        latest = self.call("GET", "/knowledge-items")["items"]
+        self.assertTrue(any(entry["id"].startswith("mock@2@") for entry in latest))
+        self.assertTrue(any(entry["id"] == early[0]["id"] for entry in latest))
+        detail = self.call("GET", "/knowledge-items/" + early[0]["id"])
+        self.assertEqual(detail["item"]["version"], 1)
+        self.assertEqual(detail["item"]["origin"], "mock")
+        self.assertTrue(detail["citations"])
+        self.assertTrue(all(citation["meeting_id"] in {"M1", "M2"} for citation in detail["citations"]))
+        for citation in detail["citations"]:
+            record = self.call("GET", "/records/" + citation["record_id"])
+            segment = next(part for part in record["segments"] if part["id"] == citation["segment_id"])
+            self.assertIn(citation["quote"], segment["text"])
+
     def test_three_versions_quotes_score_and_history(self):
         first = self.import_items([1, 2])
         job1 = self.analyze(first, 0)
