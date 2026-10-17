@@ -112,7 +112,7 @@ test('Kimi homepage uses independent analysis with clickable evidence, never moc
   assert.equal(workflow.state.active_job, null); assert.equal(chat.result(workflow), null);
   assert.equal(chat.agentResult(workflow).cards.length, 1);
   const html = renderChatHome(chat, workflow);
-  assert.match(html, /Kimi 引文分析/); assert.match(html, /data-kimi-card=/);
+  assert.match(html, /分析结果/); assert.match(html, /data-kimi-card=/);
   assert.doesNotMatch(html, /data-action="export"|data-live-insight=|等待分析结果。/);
   chat = new ChatComposer(storage); assert.equal(chat.agentResult(workflow).cards.length, 1);
   await chat.send(workflow, true); assert.equal(calls.filter(call => call === 'kimi').length, 1);
@@ -138,5 +138,5 @@ test('a Kimi batch cannot silently fall back to mock when provider configuration
   const { storage, workflow, calls } = kimiSetup(), chat = new ChatComposer(storage);
   chat.text = '合成记录'; chat.basis = 'synthetic'; await chat.send(workflow);
   workflow.health.agent_analysis_mode = 'unavailable'; await chat.send(workflow, true);
-  assert.match(chat.error, /恢复 Kimi/); assert.ok(!calls.includes('analyze'));
+  assert.match(chat.error, /恢复原服务/); assert.ok(!calls.includes('analyze'));
 });

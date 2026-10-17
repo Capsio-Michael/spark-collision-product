@@ -45,7 +45,7 @@ python3 -m engine.server --port 8000 --db var/spark.db
 
 另一个终端运行 `cd frontend && npm run dev`，打开 `http://127.0.0.1:5173/`。`GET /api/v1/health` 的 `chat_provider: "kimi"` 只说明服务进程**已读取配置**，不能证明 Key、额度或网络已验证；实际接通仍需用合成材料进行一次最小调用。区域、模型或 Key 不完整时服务拒绝以 Kimi 模式启动，不会退回 mock 冒充真实结果。
 
-对话使用 `POST /api/v1/chat/stream`，服务端只把最近的用户／助手消息交给 Kimi，不传工具或本机文件权限。对话回复不能冒充材料分析结果。分析用 `POST /api/v1/projects/{id}/agent-analysis`，接收已导入项目的 `record_id` 与 `allow_external_processing` 布尔值；获准材料必须由用户确认有权发送给 Kimi，服务端也会拒绝未确认请求。后端按原文件段落逐字核对每条引文，自己计算本轮新关注点、补充和修正数量。JSON 或引文不合格时返回错误且不保存。通过核对的结果存入 SQLite 的 `agent_analyses`，并在对话卡片中标为 **Kimi 引文分析**；它尚未并入旧版项目快照、六维总览、纠错和导出。旧 `POST /analyses` 及项目总览仍明确是 mock。
+对话使用 `POST /api/v1/chat/stream`，服务端只把最近的用户／助手消息交给 Kimi，不传工具或本机文件权限。对话回复不能冒充材料分析结果。分析用 `POST /api/v1/projects/{id}/agent-analysis`，接收已导入项目的 `record_id` 与 `allow_external_processing` 布尔值；获准材料必须由用户确认有权发送给 Kimi，服务端也会拒绝未确认请求。后端按原文件段落逐字核对每条引文，自己计算本轮新关注点、补充和修正数量。JSON 或引文不合格时返回错误且不保存。通过核对的结果存入 SQLite 的 `agent_analyses`，并在对话卡片中统一标为 **分析结果**，供应商及模型标识收在「连接设置 → 模型服务信息」；它尚未并入旧版项目快照、六维总览、纠错和导出。旧 `POST /analyses` 及项目总览仍明确是 mock。
 
 2026-10-17 首次真实调用返回 HTTP 404，未保存分析结果。核对[官方模型列表](https://platform.kimi.com/docs/models)后确认此前选择的 `kimi-k2.5` 已于 2026-08-31 下线，已改用 `kimi-k2.6`，待重启后再验证真实生成。启动会先用同一个后端进程中的 Key 请求官方 `/models`，确认配置模型在当前列表中；这一步不进行文本生成。检查失败则拒绝启动，不回退为模拟成功。模型输出质量、费用与跨场归纳仍需真实验收。
 

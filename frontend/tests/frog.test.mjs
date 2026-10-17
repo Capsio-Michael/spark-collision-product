@@ -6,7 +6,7 @@ const success = { ...context, lastJob: { status: 'succeeded', project_id: 'p1', 
 
 test('independent Kimi results show completion without a fabricated project job or breakthrough', () => {
   const model = frogPresentation({ ...context, agentResult: { outcome: 'updated' } });
-  assert.equal(model.state, 'complete'); assert.match(model.label, /Kimi 结果已读取/); assert.equal(model.animate, false);
+  assert.equal(model.state, 'complete'); assert.match(model.label, /分析结果已读取/); assert.equal(model.animate, false);
   assert.doesNotMatch(model.label, /模拟服务/);
   assert.equal(frogPresentation({ ...context, agentAnalyzing: true }).state, 'reading');
   assert.equal(frogPresentation({ ...context, connected: false, agentResult: {} }).state, 'reading');

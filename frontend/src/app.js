@@ -281,14 +281,16 @@ function schedulePolling(delay = 2000) {
 }
 
 function openConnection() {
-  const dialog = openDialog(`${dialogHeader('ENGINE CONNECTION', '连接分析引擎')}<form id="connection-form"><div class="modal-body"><p class="import-intro">先检查服务连接。连接成功后，材料仍需由你点击提交。</p><label class="field-label" for="engine-address">本机服务地址</label><input class="form-input" id="engine-address" name="base_url" type="url" required value="${e(workflow.state.base_url)}"><p class="small-note">对应接口文档 v0.1。本机地址支持 localhost 或 127.0.0.1；请确认伙伴已启动 HTTP 服务，并允许当前前端地址跨域访问。</p><div id="connection-message" class="form-error" role="alert" hidden></div><div class="local-save-note">${icon('info')}连接只读取服务与项目状态，不会自动上传材料。</div></div><div class="modal-footer"><button class="button secondary" type="button" data-action="close">取消</button><button class="button primary" id="check-engine" type="submit">检查并连接</button></div></form>`);
+  const modelInfo = workflow.health?.agent_analysis_mode === 'kimi'
+    ? `<details class="small-note"><summary>模型服务信息</summary><p>模型提供方：Kimi<br>当前模型：${e(workflow.health.chat_model || '待确认')}<br>这是分析引擎调用的第三方模型服务。密钥由后端管理，本页面不接收密钥。</p></details>` : '';
+  const dialog = openDialog(`${dialogHeader('ENGINE CONNECTION', '连接分析引擎')}<form id="connection-form"><div class="modal-body"><p class="import-intro">先检查服务连接。连接成功后，材料仍需由你点击提交。</p><label class="field-label" for="engine-address">本机服务地址</label><input class="form-input" id="engine-address" name="base_url" type="url" required value="${e(workflow.state.base_url)}"><p class="small-note">对应接口文档 v0.1。本机地址支持 localhost 或 127.0.0.1；请确认伙伴已启动 HTTP 服务，并允许当前前端地址跨域访问。</p>${modelInfo}<div id="connection-message" class="form-error" role="alert" hidden></div><div class="local-save-note">${icon('info')}连接只读取服务与项目状态，不会自动上传材料。</div></div><div class="modal-footer"><button class="button secondary" type="button" data-action="close">取消</button><button class="button primary" id="check-engine" type="submit">检查并连接</button></div></form>`);
   dialog.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
     const button = dialog.querySelector('#check-engine'); const message = dialog.querySelector('#connection-message');
     button.disabled = true; button.textContent = '正在检查连接…'; message.hidden = true;
     try {
       await workflow.connect(dialog.querySelector('#engine-address').value);
-      closeDialog(); notify(`引擎连接成功${workflow.health.agent_analysis_mode === 'kimi' ? '（Kimi 已配置，尚需验证调用）' : workflow.health.engine_mode === 'mock' ? '（模拟服务）' : ''}，材料尚未自动上传。`);
+      closeDialog(); notify(`引擎连接成功${workflow.health.agent_analysis_mode === 'kimi' ? '（AI 分析服务已配置，尚需验证调用）' : workflow.health.engine_mode === 'mock' ? '（模拟服务）' : ''}，材料尚未自动上传。`);
       schedulePolling(0);
     } catch (error) { message.textContent = error.message; message.hidden = false; }
     finally { button.disabled = false; button.textContent = '检查并连接'; }
@@ -363,7 +365,7 @@ document.addEventListener('click', event => {
   if (element.dataset.kimiCard) {
     const card = chat.agentResult(workflow)?.cards.find(item => item.key === element.dataset.kimiCard);
     if (!card) return;
-    const dialog = openDialog(`${dialogHeader('KIMI · 引文分析', card.title)}${renderKimiDetail(card)}`, 'drawer');
+    const dialog = openDialog(`${dialogHeader('智慧火花碰撞 · 分析结果', card.title)}${renderKimiDetail(card)}`, 'drawer');
     dialog.querySelectorAll('[data-kimi-evidence]').forEach(button => button.addEventListener('click', () => {
       const evidence = card.evidence[Number(button.dataset.kimiEvidence)];
       if (evidence) openServerRecord(evidence.record_id, evidence);

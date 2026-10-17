@@ -19,8 +19,8 @@ export function frogPresentation({ workspace, connected, activeJob, lastJob, ove
     if (activeJob.status === 'failed') return present('reading', `${mode}分析失败 · 可重试`);
     return present('reading', `${mode}任务状态待核查`);
   }
-  if (agentAnalyzing) return present('reading', 'Kimi 正在分析材料');
-  if (agentResult) return present('complete', agentResult.outcome === 'no_new_insight' ? 'Kimi 已完成 · 无新火花' : 'Kimi 结果已读取 · 待核查');
+  if (agentAnalyzing) return present('reading', '正在分析材料');
+  if (agentResult) return present('complete', agentResult.outcome === 'no_new_insight' ? '分析已完成 · 无新火花' : '分析结果已读取 · 待核查');
   if (lastJob?.status === 'failed') return present('reading', `${mode}分析失败 · 可重试`);
   if (lastJob?.status === 'succeeded' && Number.isSafeInteger(lastJob.result_version) && lastJob.result_version > 0
     && lastJob.result_version === overview?.snapshot_version && lastJob.project_id === projectId
