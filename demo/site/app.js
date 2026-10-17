@@ -1,14 +1,14 @@
 const records = [
-  { id: 'R1', title: '访谈一 · 标准问题', speaker: '客服负责人甲', elicitation: '主动提起', relation: '支持', quote: '标准问题可以自动回复，但报价需要人工确认。', source: '合成访谈 01 · 第 1 段' },
-  { id: 'R2', title: '访谈二 · 跨区报价', speaker: '销售负责人乙', elicitation: '被问回应', relation: '补充', quote: '我认同自动回复常见问题；跨区报价还需要销售确认。', source: '合成访谈 02 · 第 1 段' },
-  { id: 'R3', title: '访谈三 · 目录价', speaker: '运营负责人丙', elicitation: '主动提起', relation: '条件限定', quote: '对于目录价且无折扣的订单，我们已经允许系统直接发送报价。', source: '合成访谈 03 · 第 1 段' },
-  { id: 'R4', title: '访谈四 · 重复信息', speaker: '运营成员丁', elicitation: '主动提起', relation: '支持', quote: '目录价又没有折扣时，系统可以直接发送报价。', source: '合成访谈 04 · 第 1 段' }
+  { id: 'M1', title: 'M1 客服访谈', speaker: '客服负责人', elicitation: '提问方式未知', relation: '支持', quote: '标准问题可以自动回复，但报价需要人工确认。', source: 'M1.md · 第 2 段' },
+  { id: 'M2', title: 'M2 销售访谈', speaker: '销售负责人', elicitation: '提问方式未知', relation: '支持', quote: '跨区报价需要销售确认，不能直接发送给客户。', source: 'M2.md · 第 2 段' },
+  { id: 'M3', title: 'M3 运营讨论', speaker: '运营负责人', elicitation: '提问方式未知', relation: '条件限定', quote: '无折扣的目录价可以由系统直接发送。', source: 'M3.md · 第 2 段' },
+  { id: 'M4', title: 'M4 项目复盘', speaker: '项目负责人', elicitation: '提问方式未知', relation: '重复印证', quote: '我认可继续验证目录价自动发送、跨区报价人工确认这个方向。', source: 'M4.md · 第 2 段' }
 ];
 
 const states = [
-  { version: '01', judgment: '现有两段讨论都提到报价需要人工确认；具体适用范围仍待核实。', change: '初始认知', detail: '两段材料形成阶段性判断。这里记录的是发言者观点，尚未验证全部报价场景。', evidence: [0, 1] },
-  { version: '02', judgment: '报价处理取决于条件：跨区报价需销售确认；目录价且无折扣可由系统直接发送。其他场景待核实。', change: '判断增加条件', detail: '第三段提供不同条件下的做法。旧判断保留在版本 01，没有被新发言直接覆盖。', evidence: [0, 1, 2] },
-  { version: '02', judgment: '报价处理取决于条件：跨区报价需销售确认；目录价且无折扣可由系统直接发送。其他场景待核实。', change: '没有新火花', detail: '第四段重复了已知条件。讨论覆盖增加，判断仍停留在版本 02。', evidence: [0, 1, 2, 3] }
+  { version: '01', judgment: '已讨论的报价都提到人工确认；适用范围待核实。', change: '初始认知', detail: 'M1 + M2 形成阶段性推断，不能推广为全部报价的正式授权规则。', evidence: [0, 1] },
+  { version: '02', judgment: '无折扣目录价可直接发送；跨区或特殊折扣报价仍需人工确认。其他报价类型待核实。', change: '判断增加条件', detail: 'M3 提供条件反例；旧判断保留在版本 01。正式授权规则仍待验证。', evidence: [0, 1, 2] },
+  { version: '03', judgment: '无折扣目录价可直接发送；跨区或特殊折扣报价仍需人工确认。其他报价类型待核实。', change: '没有新火花', detail: 'M4 重复认可已有边界。快照更新至 v3，判断保持 v2 内容；继续验证不代表批准上线或对外承诺。', evidence: [0, 1, 2, 3] }
 ];
 
 const recordList = document.getElementById('record-list');
@@ -74,15 +74,22 @@ function renderEvidence() {
 function renderCoverage() {
   coverageGrid.replaceChildren();
   const items = [
-    [String(stage + 2), '已知发言者去重'],
-    [String(stage === 0 ? 1 : stage + 1), '主动提起'],
-    [`${stage + 2}/${stage + 2}`, '讨论记录覆盖']
+    [`${stage + 2}/${stage + 2} 场`, '会议覆盖'],
+    [`${[4, 5, 5][stage]}/5`, '重要性 · 演示评分'],
+    [stage === 0 ? '条件待核实' : '有条件趋同', '趋同程度']
   ];
   items.forEach(([value, label]) => {
     const card = el('div', 'coverage-card');
     card.append(el('strong', '', value), el('span', '', label));
     coverageGrid.append(card);
   });
+  const explanation = el('details', 'metric-explanation');
+  explanation.append(el('summary', '', '查看指标说明与演示规则'));
+  explanation.append(el('p', '', '会议覆盖按独立场次去重；一场多份材料只计一次。本案例每份 M 文件明确对应一场。'));
+  explanation.append(el('p', '', `演示规则 demo-0.1：场次 ${Math.min(stage + 2, 3)} 分（最多 3）＋至少两位独立发言者 1 分＋原话涉及业务取舍 1 分。未用真实业务校准，不是概率、证据充分度或多数票。`));
+  explanation.append(el('p', '', stage === 0 ? '趋同条件仍待核实，不能把两个场次的说法推广为全部报价规则。' : '按条件分别理解：无折扣目录价可直接发送；跨区或特殊折扣仍需确认。不是所有人无条件同意，也不代表规则已被验证。'));
+  explanation.append(el('p', '', '单次出现的审批等待仍需关注、待验证；M4 的认可不等于批准上线。'));
+  coverageGrid.append(explanation);
 }
 
 function render() {
@@ -93,8 +100,9 @@ function render() {
   versionHistory.replaceChildren();
   if (stage > 0) {
     const history = el('details');
-    const summary = el('summary', '', '查看历史版本 01');
-    history.append(summary, el('p', '', states[0].judgment));
+    const summary = el('summary', '', stage === 2 ? '查看历史版本 01 / 02' : '查看历史版本 01');
+    history.append(summary);
+    states.slice(0, stage).forEach(item => history.append(el('p', '', `版本 ${item.version}：${item.judgment}`)));
     versionHistory.append(history);
   }
   renderRecords();

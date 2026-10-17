@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createMarkdownExporter, markdownFilename } from '../src/api/export.js';
 import { ApiError } from '../src/api/client.js';
 import { ExportSession } from '../src/export-model.js';
-import { buildSyntheticReport, demoExportSource } from '../src/fixtures/export.js';
+import { buildSyntheticReport, demoExportSource } from './fixtures/export.js';
 
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 const file = (text = '# 中文报告\n', headers = {}) => new Response(text, { headers: { 'Content-Type': 'text/markdown; charset=utf-8', ...headers } });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { demoInsights } from '../src/fixtures/demo.js';
-import { getDemoInsightDetail, getDemoDetailRecord } from '../src/fixtures/insight-details.js';
+import { demoInsights } from './fixtures/demo.js';
+import { getDemoInsightDetail, getDemoDetailRecord } from './fixtures/insight-details.js';
 import { DetailSession, evidenceFor, validateDetail, validateSource } from '../src/insight-detail-model.js';
 import { renderDetailAnalysis, renderDetailEvidence } from '../src/insight-detail.js';
 
@@ -59,6 +59,13 @@ test('candidate is presented separately and does not replace the current judgmen
   assert.ok(html.includes(detail.judgment.text) && html.includes(detail.candidate_judgment.text));
   assert.deepEqual(detail, before);
   assert.ok(!html.includes('accept_candidate') && !html.includes('data-action="approve"'));
+});
+
+test('a valid collision path without a full service card is described as missing analysis, not a missing collision', () => {
+  const detail = getDemoInsightDetail('ins_01'); detail.collision_card = null;
+  const html = renderDetailAnalysis(detail);
+  assert.ok(html.includes('认知碰撞卡待补齐') && html.includes('不补造卡片内容'));
+  assert.ok(!html.includes('暂不将它标为认知突破') && !html.includes('cd-timeline'));
 });
 
 test('untrusted detail fields and source paragraphs are rendered as escaped text', () => {

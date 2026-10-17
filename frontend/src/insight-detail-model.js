@@ -1,4 +1,5 @@
 // Read-only detail state. It never creates judgments, evidence or approved actions.
+import { meetingEvidence, meetingForEvidence } from './meeting-evidence-model.js';
 export const RELATION_LABELS = {
   all: '全部', supports: '支持', challenges: '质疑', supplements: '补充',
   counterexample: '反例', qualifies: '条件限定', unknown: '未标注',
@@ -19,14 +20,12 @@ export function validateDetail(detail, { insightId, version } = {}) {
 
 export function evidenceFor(detail, filter = 'all') {
   if (filter === 'all') return array(detail.evidence);
-  return array(detail.evidence).filter(item => {
-    const relations = array(detail.relations).filter(link => link.evidence_id === item.id && Object.hasOwn(RELATION_LABELS, link.relation) && !['all', 'unknown'].includes(link.relation));
-    return filter === 'unknown' ? !relations.length : relations.some(link => link.relation === filter);
-  });
+  return meetingEvidence(detail, filter).groups.flatMap(group => group.entries.map(item => item.evidence));
 }
 
-export function validateSource(record, evidence) {
+export function validateSource(record, evidence, expectedMeeting = evidence.meeting_id) {
   if (!record || record.id !== evidence.record_id) throw new Error('原文材料与该证据不一致，无法确认引用位置。');
+  if (typeof expectedMeeting === 'string' && expectedMeeting.trim() && typeof record.meeting_id === 'string' && record.meeting_id.trim() && record.meeting_id !== expectedMeeting) throw new Error('原文与标注的会议归属不一致，未高亮未经核实的位置。');
   const segment = array(record.segments).find(item => item.id === evidence.segment_id);
   if (!segment || !text(evidence.quote) || !text(segment.text).includes(evidence.quote)) throw new Error('引用与原文段落不匹配，未高亮未经核实的位置。');
   return record;
@@ -51,14 +50,21 @@ export class DetailSession {
       if (generation === this.generation) this.update({ status: 'error', error: error.message || '无法读取详情，请稍后重试。' });
     }
   }
-  setFilter(filter) { if (Object.hasOwn(RELATION_LABELS, filter)) this.update({ filter }); }
+  setFilter(filter) {
+    if (!Object.hasOwn(RELATION_LABELS, filter)) return;
+    const selected = this.state.selectedEvidenceId;
+    if (selected && !evidenceFor(this.state.detail, filter).some(item => item.id === selected)) {
+      this.sourceGeneration++;
+      this.update({ filter, selectedEvidenceId: null, sourceStatus: 'idle', record: null, sourceError: null });
+    } else this.update({ filter });
+  }
   async selectEvidence(id) {
     const generation = ++this.sourceGeneration;
     const evidence = array(this.state.detail?.evidence).find(item => item.id === id);
     if (!evidence) { this.update({ selectedEvidenceId: null, record: null, sourceStatus: 'error', sourceError: '这项引用未提供可定位的证据，无法打开原文。' }); return; }
     this.update({ selectedEvidenceId: id, record: null, sourceStatus: 'loading', sourceError: null });
     try {
-      const record = validateSource(await this.loadRecord(evidence.record_id), evidence);
+      const record = validateSource(await this.loadRecord(evidence.record_id), evidence, meetingForEvidence(this.state.detail, id) || evidence.meeting_id);
       if (generation !== this.sourceGeneration || this.closed) return;
       this.update({ record, sourceStatus: 'ready' });
     } catch (error) {

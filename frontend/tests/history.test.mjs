@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { HistorySession, comparisonKind, historyFields, sortVersions, defaultPair } from '../src/history-model.js';
-import { demoHistorySource } from '../src/fixtures/history.js';
+import { demoHistorySource } from './fixtures/history.js';
 
 const version = (number, changes = []) => ({ version: number, parent_version: number - 1, created_at: `2026-10-17T12:0${number}:00+08:00`, cause: 'analysis', job_id: `job_${number}`, correction_id: null, source_record_ids: ['record'], outcome: 'updated', summary: '', changes, actor_label: null, correction_reason: null });
 const judgment = (text = '标准问题可尝试自动回复', overrides = {}) => ({ id: 'judgment_1', text, epistemic_type: 'inference', fact_basis: null, review_status: 'confirmed', conditions: ['识别风险'], evidence_ids: ['ev1'], rationale: '需要先明确业务风险', alternative_explanations: ['也可能由规则处理'], evidence_gaps: ['缺少误判数据'], ...overrides });

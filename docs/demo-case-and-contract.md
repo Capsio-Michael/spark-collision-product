@@ -31,9 +31,9 @@
 4. `GET /projects/{id}/overview[?version=N]`、`GET /projects/{id}/insights/{insight_id}[?version=N]`、`GET /projects/{id}/versions`。
 5. `GET /projects/{id}/export?format=markdown&version=N`；导出含可读原话与场次、分数、条件、历史。纠错 `POST /corrections` 在首轮可明确返回“尚未实现”错误，不可伪装保存成功。
 
-本案例中客户端为每份材料显式填写一个稳定 `meeting_id`（M1–M4）；一鸣现有导入表单尚未传此字段，需要更新。为了允许旧前端立即联调，服务可对缺字段的单份材料建立独立场次，**但此兼容路径只能用于本次一份材料一场的合成案例**，不能宣称支持同场多文件。新字段经双方确认后加入请求和草稿。
+本案例中客户端为每份材料显式填写一个稳定 `meeting_id`（M1–M4）；前端导入表单现已支持显式填写并提交此字段，草稿与刷新恢复会保留归属。为了允许旧前端立即联调，服务可对缺字段的单份材料建立独立场次，**但此兼容路径只能用于本次一份材料一场的合成案例**，不能宣称支持同场多文件。新字段经双方确认后加入请求和草稿。
 
-总览与详情在 v0.1 基础上增加可选 `meeting_coverage`：`distinct_meeting_count`、`total_meeting_count`、`meeting_ids`；以及 `importance`：`rule_version`、`score`、`parts`、`raw_counts`；`convergence_status` 和 `annotations`（`meeting_id`、`evidence_id`、`relation`、`condition`）。当前前端仍可能忽略这些可选字段；一鸣按此文档展示后再冻结正式字段名。`spark` 来源路径只表示认知碰撞，**不能代替主题出现频次**。
+总览与详情在 v0.1 基础上增加可选 `meeting_coverage`：`distinct_meeting_count`、`total_meeting_count`、`meeting_ids`；以及 `importance`：`rule_version`、`score`、`max_score`、`parts`、`raw_counts`；`convergence_status` 和 `annotations`（`meeting_id`、`evidence_id`、`relation`、`condition`）。前端已分别展示会议覆盖、重要性及趋同程度，并按明确场次组织 annotations、筛选关系与点回原话；字段约束和待共同确认项见接口契约第 11、12 节。`spark` 来源路径只表示认知碰撞，**不能代替主题出现频次**。
 
 ## 交接验收
 

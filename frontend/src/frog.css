@@ -1,0 +1,118 @@
+.frog {
+  --frog-body: #b9ed68;
+  --frog-shade: #83b947;
+  --frog-ink: #183423;
+  --frog-blush: #ec8d91;
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  color: #d9efea;
+  font: 600 14px/1.35 system-ui, sans-serif;
+}
+.frog-trigger {
+  width: 150px;
+  height: 150px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #476967;
+  border-radius: 26px;
+  background: radial-gradient(circle at 50% 35%, #24564b, #102c32 74%);
+  cursor: pointer;
+  transition: border-color .2s, transform .2s;
+}
+.frog-trigger:hover { border-color: var(--frog-body); transform: translateY(-2px); }
+.frog-trigger:focus-visible, .frog-appearance button:focus-visible { outline: 3px solid #efffb0; outline-offset: 3px; }
+.frog-art { width: 124px; height: 124px; overflow: visible; }
+.frog-art .body { fill: var(--frog-body); stroke: var(--frog-ink); stroke-width: 2; }
+.frog-art .shade { fill: var(--frog-shade); }
+.frog-art .eye-white { fill: #fffdf3; }
+.frog-art .eye-ink, .frog-art .smile-fill { fill: var(--frog-ink); }
+.frog-art .blush { fill: var(--frog-blush); }
+.frog-art .smile { stroke: var(--frog-ink); }
+.frog-art .prop-thought { fill: #f6f5df; }
+.frog-art .prop-spark { fill: #ffde72; stroke: #6c4b1a; stroke-width: 1.5; }
+.frog-pixel, .prop-book, .prop-thought, .prop-spark, .prop-complete { display: none; }
+.frog[data-style="pixel"] .frog-round { display: none; }
+.frog[data-style="pixel"] .frog-pixel { display: block; }
+.frog[data-state="reading"] .prop-book,
+.frog[data-state="thinking"] .prop-thought,
+.frog[data-state="spark"] .prop-spark,
+.frog[data-state="complete"] .prop-complete { display: block; }
+.frog-status { min-height: 1.35em; color: #e5f7ee; }
+.frog--compact { font-size: 11px; }
+.frog--compact .frog-trigger { width: 64px; height: 64px; border-radius: 16px; }
+.frog--compact .frog-art { width: 57px; height: 57px; }
+.frog-appearance {
+  z-index: 5;
+  position: absolute;
+  top: calc(100% + 8px);
+  width: 236px;
+  padding: 13px;
+  border: 1px solid #456b6a;
+  border-radius: 16px;
+  background: #10292e;
+  box-shadow: 0 12px 26px #0007;
+  text-align: left;
+}
+.frog-appearance[hidden] { display: none; }
+.frog-appearance p { margin: 0 0 10px; }
+.frog-appearance small { color: #a7c2be; font-weight: 400; }
+.frog-choice-label { margin: 9px 0 5px; color: #abc9c1; font-size: 12px; }
+.frog-style-options, .frog-palette-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.frog-appearance button {
+  border: 1px solid #517876;
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: #17363a;
+  color: #edf9f5;
+  font: inherit;
+  cursor: pointer;
+}
+.frog-appearance button[aria-pressed="true"] { border-color: #d6f38c; background: #2b5750; }
+.frog-appearance [data-palette-choice]::before {
+  content: "";
+  display: inline-block;
+  vertical-align: -.13em;
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--swatch);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .frog[data-state="thinking"] .prop-thought { animation: frog-think 1.7s ease-in-out infinite; transform-origin: 90px 12px; }
+  .frog[data-state="spark"] .prop-spark { animation: frog-spark .9s ease-in-out infinite alternate; transform-origin: 100px 16px; }
+  .frog[data-state="complete"] .prop-complete { animation: frog-done .32s ease-out 1; transform-origin: 101px 15px; }
+}
+@keyframes frog-think { 50% { opacity: .45; transform: translateY(-3px); } }
+@keyframes frog-spark { to { transform: scale(1.25) rotate(13deg); } }
+@keyframes frog-done { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Workbench integration: light surfaces, modest size, no overlay on evidence. */
+#assistant-slot { margin: 18px 8px 0; }
+.assistant-host { display: inline-flex; align-items: center; flex-direction: column; max-width: 100%; }
+.assistant-host .frog { color: #465264; font-size: 11px; }
+.assistant-host .frog-trigger { width: 104px; height: 104px; border-radius: 22px; border-color: #d9e6d7; background: radial-gradient(circle at 50% 35%, #f6ffe9, #eff7f2 80%); }
+.assistant-host .frog-art { width: 90px; height: 90px; }
+.assistant-host .frog--compact .frog-trigger { width: 62px; height: 62px; border-radius: 17px; }
+.assistant-host .frog--compact .frog-art { width: 54px; height: 54px; }
+.assistant-host .frog-status { color: #657569; font-size: 10px; max-width: 180px; text-align: center; }
+.assistant-host .frog-appearance { z-index: 12; left: 0; width: min(244px, calc(100vw - 56px)); color: #415549; border-color: #dce7db; background: #fff; box-shadow: 0 12px 32px #283e2926; }
+.assistant-host .frog-appearance small, .assistant-host .frog-choice-label { color: #6c8072; }
+.assistant-host .frog-appearance button { color: #405548; background: #f5f9f3; border-color: #dde6d9; font-size: 12px; }
+.assistant-host .frog-appearance button[aria-pressed="true"] { border-color: #7fa25f; background: #edf6e6; }
+.assistant-host .frog-trigger:focus-visible, .assistant-host .frog-appearance button:focus-visible { outline-color: #8ca46e; }
+.assistant-host .prop-thought { fill: #617f69; }
+.assistant-in-header { margin-left: auto; flex-shrink: 0; }
+.assistant-in-header .frog-appearance { left: auto; right: 0; }
+.assistant-in-header .frog-status { max-width: 130px; font-size: 9px; }
+.assistant-in-header .frog--compact .frog-trigger { width: 44px; height: 44px; border-radius: 12px; }
+.assistant-in-header .frog--compact .frog-art { width: 40px; height: 40px; }
+.assistant-host .frog[data-quiet="true"] *, .assistant-host .frog[data-quiet="true"] .frog-trigger:hover { animation: none !important; transform: none; }
+.frog-preference-note { color: #93663e; font-size: 10px; max-width: 180px; }
+.upload-symbol:has(.assistant-host) { padding: 0; background: none; }
+@media (max-height: 760px) and (min-width: 641px) { .sidebar-bottom { padding-top: 12px; } .sidebar-bottom > .principle-mark, .sidebar-bottom > p, .sidebar-bottom > span { display: none; } .sidebar-note { margin-top: 10px; } }
+@media (max-width: 640px) { #assistant-slot { margin: 5px 0; } #assistant-slot .assistant-host { flex-direction: row; } #assistant-slot .frog { flex-direction: row; gap: 10px; } .assistant-in-header .frog-status { max-width: 85px; } .assistant-host .frog-appearance { left: 0; right: auto; } .assistant-in-header .frog-appearance { left: auto; right: -20px; } }

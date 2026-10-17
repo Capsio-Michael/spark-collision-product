@@ -475,6 +475,16 @@ dialog.material-editor { width: min(920px, calc(100vw - 36px)); }
 .editor-intro .icon { width: 13px; height: 13px; }
 #buffer-status { font-size: 9px; white-space: nowrap; }
 .editor-layout { display: grid; grid-template-columns: 215px minmax(0, 1fr); }
+.material-editor [hidden] { display: none !important; }
+.upload-start { padding: 40px 28px; text-align: center; }
+.upload-start h3 { margin: 16px 0 10px; font-size: 23px; color: #465264; }
+.upload-start > p { line-height: 1.9; margin: 12px 0; }
+.upload-symbol { display: inline-flex; padding: 18px; border-radius: 20px; background: #fff2e8; color: #ae4f22; }
+.upload-symbol .icon { width: 32px; height: 32px; }
+.upload-start-actions { display: flex; gap: 12px; justify-content: center; margin: 26px 0; flex-wrap: wrap; }
+.material-metadata { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.material-metadata > summary { cursor: pointer; font-size: 12px; line-height: 1.8; color: #66768b; }
+.upload-error { margin: 12px 24px; }
 .editor-queue { padding: 20px 13px; border-right: 1px solid var(--line); background: #fafbfd; }
 .queue-heading { display: flex; justify-content: space-between; gap: 8px; margin: 0 5px 14px; font-size: 11px; color: #8a98aa; }
 .queue-heading > strong { font-weight: 500; }
@@ -546,3 +556,10 @@ dialog.material-editor { width: min(920px, calc(100vw - 36px)); }
   .participant-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 23px; }
   .participant-row .form-input { padding: 8px 5px; font-size: 9px; }
 }
+:root .demo-stages { padding: 22px 24px; margin-bottom: 24px; background: #fff; border: 1px solid #e5e8ee; border-radius: 16px; }
+.demo-stages strong { font-size: 16px; }
+.demo-attention { display: flex; gap: 6px; align-items: flex-start; color: #95621b; font-size: 12px; line-height: 1.6; }
+.demo-stages p { color: #697486; font-size: 13px; line-height: 1.7; margin: 6px 0 0; }
+.demo-stage-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 10px; }
+.demo-stage-buttons .button { min-height: 40px; white-space: normal; text-align: left; }
+@media (max-width: 600px) { .demo-stage-buttons { flex-direction: column; } }

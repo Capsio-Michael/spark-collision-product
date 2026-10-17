@@ -1,5 +1,8 @@
 import { DIMENSIONS, TYPE_LABELS, SOURCE_LABELS } from '../core.js';
 import { demoHistorySource } from './history.js';
+import { insightMetrics } from '../insight-metrics.js';
+import { meetingEvidence } from '../meeting-evidence-model.js';
+import { RELATION_LABELS } from '../insight-detail-model.js';
 
 const array = value => Array.isArray(value) ? value : [];
 // Text is quoted as Markdown data, never treated as report structure or HTML.
@@ -51,7 +54,7 @@ export async function buildSyntheticReport(version, { source = demoHistorySource
   }
   const lines = [
     `# ${md(overview.project.name)} · 分析报告`,
-    '> 合成案例：手工编写的材料与分析，用于交互演示。不是实际客户结论或真实模型运行记录。',
+    '> 合成案例：预设材料与模拟结果，用于交互演示。不是实际客户结论或真实模型运行记录。',
     `导出时间：${now().toISOString()}  \n项目：${md(source.projectId)}  \n快照版本：v${version}  \n本版材料范围：${overview.source_record_ids.length} 份  \n格式：UTF-8 Markdown`,
     '本报告按指定快照导出，仅包含截至该版本的信息。事实、观点、推断和待验证假设分别标明；确认判断不等于批准行动。',
     '## 一、材料与覆盖范围',
@@ -75,6 +78,16 @@ export async function buildSyntheticReport(version, { source = demoHistorySource
   lines.push('## 四、关注点、当前判断与认知碰撞卡');
   for (const detail of current.details) {
     lines.push(`### ${md(detail.title)}`, '#### 当前有效判断', judgment(detail.judgment));
+    const metrics = insightMetrics(detail);
+    lines.push(`会议覆盖：${md(metrics.meetings.value)}。${md(metrics.meetings.note)}`, `${md(metrics.priority.label)}：${md(metrics.priority.value)}。${md(metrics.priority.note)}`, `趋同程度：${md(metrics.convergence.value)}。${md(metrics.convergence.note)}`);
+    if (metrics.priority.rule) lines.push(`演示规则 ${md(metrics.priority.rule)}：${metrics.priority.parts.map(part => `${md(part.label)} ${part.points} 分（${md(part.basis)}）`).join('；')}。`);
+    const meetings = meetingEvidence(detail);
+    lines.push('#### 按会议核查证据标注', '标注描述分析关系；适用条件未注明不代表无条件成立。');
+    lines.push(...meetings.issues.map(issue => md(issue)));
+    for (const group of meetings.groups) {
+      lines.push(`##### ${md(group.meetingId || '场次待补齐')}`);
+      for (const entry of group.entries) lines.push(`- ${refs([entry.evidence.id])}：${entry.links.map(link => `${md(RELATION_LABELS[link.relation] || '关系待确认')}；适用条件：${md(link.condition || '未注明')}`).join(' / ')}${entry.repeated ? '；重复印证，非新火花' : ''}。${entry.notes.map(md).join(' ')}\n  原话：${md(entry.evidence.quote)}`);
+    }
     if (detail.candidate_judgment) lines.push('#### 待确认候选（未替换当前判断）', judgment(detail.candidate_judgment));
     lines.push(`分歧状态：${detail.dispute_status === 'open' ? '尚未解决' : '本版未标记开放分歧'}。`);
     const card = detail.collision_card;

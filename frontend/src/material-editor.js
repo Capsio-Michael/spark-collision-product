@@ -10,10 +10,18 @@ export function openMaterialEditor({ workflow, editingId = null, openDialog, clo
   let records = structuredClone(workflow.state.editor_buffers[key] || (original ? [original] : [emptyRecord()]));
   let active = 0, reading = false, submitted = false, timer;
   const editingIds = editingId ? [editingId] : [];
-  const dialog = openDialog(`${dialogHeader('RESEARCH MATERIALS', editingId ? '编辑材料草稿' : '导入研究材料')}<div class="editor-intro"><span>${icon('info')}逐份补充信息，保存后再提交引擎。</span><span id="buffer-status">填写内容会自动暂存</span></div><div class="editor-layout"><aside class="editor-queue" aria-label="本次材料"><div class="queue-heading"><strong>本次材料</strong><span id="queue-count"></span></div><div id="editor-tabs"></div>${!editingId ? `<div class="queue-actions"><button type="button" class="button secondary" id="add-paste">${icon('plus')}新增粘贴材料</button><label class="button secondary file-picker-label" for="editor-files">${icon('upload')}添加文件<input id="editor-files" type="file" accept=".txt,.md" multiple></label><p>支持 UTF-8 TXT / Markdown<br>每批最多 5 份</p></div>` : ''}</aside><div class="editor-main"><div id="editor-fields"></div><div id="editor-error" class="form-error" role="alert" hidden></div></div></div><footer class="modal-footer editor-footer"><span id="editor-save-note">尚未提交 · 原文保留在本地</span><button type="button" class="button secondary" id="save-draft">保存草稿</button><button type="button" class="button primary" id="submit-draft" ${!workflow.connected ? 'disabled title="先连接引擎即可提交"' : ''}>提交材料 ${icon('arrow')}</button></footer>`, 'modal material-editor');
+  const blankRecord = record => !record.title && !record.content && !record.material_basis && !record.participants.length && !record.source_date && !record.meeting_id && !record.authorization_note;
+  const startsEmpty = !editingId && records.length === 1 && blankRecord(records[0]);
+  const expandedMetadata = new Set();
+  const dialog = openDialog(`${dialogHeader('MEETING MATERIALS', editingId ? '编辑材料草稿' : '上传资料')}
+    <div class="editor-intro"><span>${icon('info')}先保存材料，再连接引擎分析。</span><span id="buffer-status">填写内容会自动暂存</span></div>
+    ${!editingId ? `<section id="upload-start" class="upload-start" ${!startsEmpty ? 'hidden' : ''} aria-label="添加会议资料"><span class="upload-symbol">${icon('upload')}</span><h3>把交流记录放进来</h3><p>选择 TXT / Markdown 文件，或直接粘贴文字。<br>不需要先配置分析模式或参与者。</p><div class="upload-start-actions"><label class="button primary file-picker-label">${icon('upload')}选择文件<input id="start-files" type="file" accept=".txt,.md" multiple aria-label="选择会议资料文件"></label><button class="button secondary" type="button" id="start-paste">${icon('file')}粘贴文字</button></div><p class="small-note">支持 UTF-8 编码；每批最多 5 份，每份最多 20,000 字符。<br>也可以将文件拖到这里。当前暂不支持音频、PDF 或图片。</p><p class="small-note">先保存在当前浏览器，不会自动上传或开始分析。</p></section>` : ''}
+    <div class="editor-layout" ${startsEmpty ? 'hidden' : ''}><aside class="editor-queue" aria-label="本次材料"><div class="queue-heading"><strong>本次材料</strong><span id="queue-count"></span></div><div id="editor-tabs"></div>${!editingId ? `<div class="queue-actions"><button type="button" class="button secondary" id="add-paste">${icon('plus')}新增粘贴材料</button><label class="button secondary file-picker-label" for="editor-files">${icon('upload')}添加文件<input id="editor-files" type="file" accept=".txt,.md" multiple></label><p>支持 UTF-8 TXT / Markdown<br>每批最多 5 份</p></div>` : ''}</aside><div class="editor-main"><div id="editor-fields"></div></div></div>
+    <div id="editor-error" class="form-error upload-error" role="alert" hidden></div>
+    <footer class="modal-footer editor-footer" ${startsEmpty ? 'hidden' : ''}><span id="editor-save-note">尚未提交 · 原文保留在本地</span><button type="button" class="button primary" id="save-draft">保存到材料列表</button><button type="button" class="button secondary" id="submit-draft" ${!workflow.connected ? 'hidden disabled' : ''}>提交到引擎 ${icon('arrow')}</button></footer>`, 'modal material-editor');
   const fieldRoot = dialog.querySelector('#editor-fields');
   const errorNode = dialog.querySelector('#editor-error');
-  function emptyRecord() { return { client_record_id: crypto.randomUUID(), title: '', source_type: 'interview', source_date: null, source_name: '粘贴记录', material_basis: '', authorization_note: null, participants: [], content: '' }; }
+  function emptyRecord() { return { client_record_id: crypto.randomUUID(), title: '', source_type: 'other', source_date: null, source_name: '粘贴记录', material_basis: '', authorization_note: null, participants: [], content: '' }; }
   function error(message) { errorNode.textContent = message || ''; errorNode.hidden = !message; if (message) requestAnimationFrame(() => errorNode.scrollIntoView({ block: 'nearest' })); }
   function buffer() {
     clearTimeout(timer);
@@ -35,7 +43,23 @@ export function openMaterialEditor({ workflow, editingId = null, openDialog, clo
   }
   function renderFields() {
     const record = records[active];
-    fieldRoot.innerHTML = `<div class="editor-section-header"><span class="eyebrow">MATERIAL ${String(active + 1).padStart(2, '0')}</span><span>${e(record.source_name || '粘贴记录')}</span></div><label class="field-label" for="edit-title">材料标题 <span>必填</span></label><input class="form-input" id="edit-title" data-field="title" value="${e(record.title)}" maxlength="120" placeholder="例如：客服负责人访谈记录"><div class="form-grid"><div><label class="field-label" for="edit-source-type">来源类型</label><select class="form-input" id="edit-source-type" data-field="source_type">${Object.entries(SOURCE_LABELS).map(([value, label]) => `<option value="${value}" ${record.source_type === value ? 'selected' : ''}>${label}</option>`).join('')}</select></div><div><label class="field-label" for="edit-date">材料日期 <span>可不填</span></label><input class="form-input" id="edit-date" data-field="source_date" type="date" value="${e(record.source_date || '')}"></div></div><label class="field-label" for="edit-content">完整原文 <span>保存后仍可预览</span></label><textarea class="form-input" id="edit-content" data-field="content" rows="7" placeholder="保留原始记录与上下文…">${e(record.content)}</textarea><div class="field-hint"><span>每份最多 20,000 个字符</span><span id="editor-char-count">${characterCount(record.content).toLocaleString()} / 20,000</span></div><div class="participants-heading"><label class="field-label">参与者 <span>可不填，不确定时不推测</span></label><button type="button" class="text-button" id="add-participant">${icon('plus')}添加参与者</button></div><div id="participants-list">${participantRows(record)}</div><p class="small-note">同一个人跨材料出现时，请选择“复用”；同名不会自动合并身份。</p><label class="field-label" for="edit-basis">材料使用依据 <span>必填</span></label><select class="form-input" id="edit-basis" data-field="material_basis"><option value="">请选择</option><option value="synthetic" ${record.material_basis === 'synthetic' ? 'selected' : ''}>合成案例</option><option value="authorized" ${record.material_basis === 'authorized' ? 'selected' : ''}>已获得使用授权</option></select><div id="editor-authorization" ${record.material_basis !== 'authorized' ? 'hidden' : ''}><label class="field-label" for="edit-authorization">授权说明 <span>必填</span></label><input class="form-input" id="edit-authorization" data-field="authorization_note" maxlength="1000" value="${e(record.authorization_note || '')}" placeholder="例如：经提供者同意用于本次演示"></div>`;
+    fieldRoot.innerHTML = `<div class="editor-section-header"><span class="eyebrow">MATERIAL ${String(active + 1).padStart(2, '0')}</span><span>${e(record.source_name || '粘贴记录')}</span></div>
+      <label class="field-label" for="edit-content">原始文字 <span>必填，保留完整上下文</span></label><textarea class="form-input" id="edit-content" data-field="content" rows="8" placeholder="把会议记录、访谈或讨论原文粘贴到这里…">${e(record.content)}</textarea><div class="field-hint"><span>保存后可以继续编辑</span><span id="editor-char-count">${characterCount(record.content).toLocaleString()} / 20,000</span></div>
+      <label class="field-label" for="edit-title">材料标题 <span>必填</span></label><input class="form-input" id="edit-title" data-field="title" value="${e(record.title)}" maxlength="120" placeholder="例如：品牌官网设计评审">
+      <label class="field-label" for="edit-basis">这份材料可以用于本次分析吗？ <span>必选</span></label><select class="form-input" id="edit-basis" data-field="material_basis"><option value="">请选择材料使用依据</option><option value="synthetic" ${record.material_basis === 'synthetic' ? 'selected' : ''}>合成案例（虚构的演示文字）</option><option value="authorized" ${record.material_basis === 'authorized' ? 'selected' : ''}>已获得使用授权</option></select>
+      <div id="editor-authorization" ${record.material_basis !== 'authorized' ? 'hidden' : ''}><label class="field-label" for="edit-authorization">授权说明 <span>必填</span></label><input class="form-input" id="edit-authorization" data-field="authorization_note" maxlength="1000" value="${e(record.authorization_note || '')}" placeholder="例如：经提供者同意用于本次演示"></div>
+      <details class="material-metadata" ${expandedMetadata.has(record.client_record_id) ? 'open' : ''}><summary>更多信息（选填）：日期、会议归属、参与者</summary><p class="small-note">不确定的内容可以留空，之后也可在草稿中补充。</p><div class="form-grid"><div><label class="field-label" for="edit-source-type">来源类型</label><select class="form-input" id="edit-source-type" data-field="source_type">${Object.entries(SOURCE_LABELS).map(([value, label]) => `<option value="${value}" ${record.source_type === value ? 'selected' : ''}>${label}</option>`).join('')}</select></div><div><label class="field-label" for="edit-date">材料日期</label><input class="form-input" id="edit-date" data-field="source_date" type="date" value="${e(record.source_date || '')}"></div></div>
+      <label class="field-label" for="edit-meeting">所属会议标识 <span>不确定时留空</span></label><input class="form-input" id="edit-meeting" data-field="meeting_id" value="${e(record.meeting_id || '')}" maxlength="120" placeholder="例如：M1、M2 或本次会议的明确编号"><p class="small-note">按真实会议归属填写，不按文件名推断。当前模拟服务每场只接收一份材料。</p>
+      <div class="participants-heading"><label class="field-label">参与者 <span>不确定时不推测</span></label><button type="button" class="text-button" id="add-participant">${icon('plus')}添加参与者</button></div><div id="participants-list">${participantRows(record)}</div><p class="small-note">同一个人跨材料出现时请选择“复用”；同名不会自动合并身份。</p></details>`;
+    fieldRoot.querySelector('.material-metadata').addEventListener('toggle', event => {
+      if (event.target.open) expandedMetadata.add(record.client_record_id);
+      else expandedMetadata.delete(record.client_record_id);
+    });
+  }
+  function showEditor() {
+    const start = dialog.querySelector('#upload-start'); if (start) start.hidden = true;
+    dialog.querySelector('.editor-layout').hidden = false;
+    dialog.querySelector('.editor-footer').hidden = false;
   }
   function render() { renderTabs(); renderFields(); }
   render();
@@ -70,19 +94,20 @@ export function openMaterialEditor({ workflow, editingId = null, openDialog, clo
     dialog.querySelector('#save-draft').disabled = true; dialog.querySelector('#submit-draft').disabled = true;
     try {
       const added = await decodeMaterialFiles(files);
-      const blankOnly = records.length === 1 && !records[0].title && !records[0].content && !records[0].material_basis && !records[0].participants.length && !records[0].source_date;
+      const blankOnly = records.length === 1 && blankRecord(records[0]);
       if ((blankOnly ? 0 : records.length) + added.length > 5) throw new Error('本批次最多 5 份材料，请先保存当前批次。');
       records = blankOnly ? added : [...records, ...added]; active = records.length - added.length;
-      render(); buffer();
+      render(); showEditor(); buffer();
     } catch (cause) { error(cause.message); }
-    finally { reading = false; dialog.querySelector('#save-draft').disabled = false; dialog.querySelector('#submit-draft').disabled = !workflow.connected; const input = dialog.querySelector('#editor-files'); if (input) input.value = ''; }
+    finally { reading = false; dialog.querySelector('#save-draft').disabled = false; dialog.querySelector('#submit-draft').disabled = !workflow.connected; for (const input of dialog.querySelectorAll('input[type="file"]')) input.value = ''; }
   }
-  dialog.querySelector('#editor-files')?.addEventListener('change', event => filesSelected([...event.target.files]));
+  for (const input of dialog.querySelectorAll('input[type="file"]')) input.addEventListener('change', event => filesSelected([...event.target.files]));
   dialog.addEventListener('dragover', event => { if (editingId) return; event.preventDefault(); dialog.classList.add('drag-over'); });
   dialog.addEventListener('dragleave', event => { if (!dialog.contains(event.relatedTarget)) dialog.classList.remove('drag-over'); });
   dialog.addEventListener('drop', event => { if (editingId) return; event.preventDefault(); dialog.classList.remove('drag-over'); filesSelected([...event.dataTransfer.files]); });
   dialog.addEventListener('click', async event => {
     const button = event.target.closest('button'); if (!button || reading) return;
+    if (button.id === 'start-paste') { showEditor(); fieldRoot.querySelector('#edit-content').focus(); return; }
     if (button.dataset.editorTab !== undefined) { active = Number(button.dataset.editorTab); render(); error(null); }
     if (button.dataset.editorRestore) {
       if (records.length >= 5) { error('本批次最多 5 份材料，请先保存再恢复。'); return; }
@@ -109,10 +134,10 @@ export function openMaterialEditor({ workflow, editingId = null, openDialog, clo
     if (button.id === 'add-participant') { records[active].participants.push({ id: crypto.randomUUID(), label: '' }); dialog.querySelector('#participants-list').innerHTML = participantRows(records[active]); buffer(); }
     if (button.dataset.removePerson !== undefined) { records[active].participants.splice(Number(button.dataset.removePerson), 1); dialog.querySelector('#participants-list').innerHTML = participantRows(records[active]); buffer(); }
     if (['save-draft', 'submit-draft'].includes(button.id)) {
-      const normalized = records.map(record => ({ ...record, title: record.title.trim(), authorization_note: record.material_basis === 'authorized' ? record.authorization_note?.trim() || null : null, participants: record.participants.map(person => ({ ...person, label: person.label.trim() })) }));
+      const normalized = records.map(record => ({ ...record, title: record.title.trim(), meeting_id: typeof record.meeting_id === 'string' ? record.meeting_id.trim() || null : record.meeting_id ?? null, authorization_note: record.material_basis === 'authorized' ? record.authorization_note?.trim() || null : null, participants: record.participants.map(person => ({ ...person, label: person.label.trim() })) }));
       for (let index = 0; index < normalized.length; index++) {
         const invalid = validateDrafts([normalized[index]]);
-        if (invalid) { active = index; render(); error(`第 ${index + 1} 份材料：${invalid}`); return; }
+        if (invalid) { active = index; if (/日期|参与者|会议标识|材料类型/.test(invalid)) expandedMetadata.add(normalized[index].client_record_id); render(); error(`第 ${index + 1} 份材料：${invalid}`); return; }
       }
       try {
         workflow.save(normalized, editingIds, key); submitted = true; clearTimeout(timer); closeDialog();

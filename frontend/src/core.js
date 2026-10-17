@@ -31,6 +31,7 @@ export function validateDrafts(incoming, existing = []) {
     if (record.material_basis === 'authorized' && !record.authorization_note?.trim()) return '请填写这份材料的使用授权说明。';
     if (record.authorization_note && characterCount(record.authorization_note) > 1000) return '授权说明最多 1,000 个字符。';
     if (!Object.hasOwn(SOURCE_LABELS, record.source_type)) return '请选择有效的材料类型。';
+    if (record.meeting_id != null && (typeof record.meeting_id !== 'string' || characterCount(record.meeting_id.trim()) > 120)) return '所属会议标识最多 120 个字符；不确定时可以留空。';
     if (record.source_date) {
       const date = new Date(`${record.source_date}T00:00:00Z`);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(record.source_date) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== record.source_date) return '请填写有效的材料日期，或留空。';

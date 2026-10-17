@@ -537,3 +537,46 @@ GET /projects/{project_id}/export?format=markdown&version=2。
 5. 字段删除、重命名、类型变化、状态语义变化先更新文档并双方确认；新增可选字段兼容旧前端。前端遇到未知枚举显示中性占位，不能误标“已确认／已批准”。
 6. 共享契约文件的维护人为交互方；引擎方通过 PR 提议修改。各自分支开发，合入 main 前按第 9 节联调。
 7. 本稿冻结前标为 v0.1 draft；冻结记录中填写双方确认人、时间、文档 commit 和未决项。截止时间与实际负责人未确定时保持“待商定／待指定”。
+
+## 11. 可选会议指标：前端已支持，正式冻结待双方确认
+
+本节落实 `demo-case-and-contract.md` 中伙伴模拟服务已返回的字段，不改变 v0.1 的必填字段。用于 Overview 中每个 insight 和对应版本的 InsightDetail；三个指标分别展示，任何一个缺失或不合法不阻断其他判断与原文展示。前端不根据文件数、火花颜色、人数或重要性补算缺失字段。
+
+| 字段 | 类型与约束 | 展示含义 |
+| --- | --- | --- |
+| `meeting_coverage.distinct_meeting_count` | 非负整数，不大于 total | 本关注点有证据的独立场次 |
+| `meeting_coverage.total_meeting_count` | 非负整数 | 本快照全部独立场次，不能读最新版本的分母 |
+| `meeting_coverage.meeting_ids` | 去重的非空字符串数组，长度等于 distinct | 明确的场次归属，同场多文件只计一次 |
+| `importance.rule_version` | 当前支持 `demo-0.1` | 仅合成演示规则；其他规则显示“评分待解释” |
+| `importance.score` / `max_score` | 非负整数；本规则 max=5，score=分项之和且不大于 5 | 优先阅读提示，不是概率、证据充分度、共识或付费意愿 |
+| `importance.parts.distinct_meetings` | min(raw_counts.distinct_meetings, 3) | 场次分，上限 3 |
+| `importance.parts.independent_speakers` | raw_counts.independent_speakers ≥ 2 时为 1，否则 0 | 发言者分，上限 1；未知身份不能得该分 |
+| `importance.parts.documented_business_choice` | 0 或 1 | 业务取舍原话分，上限 1，由模拟服务给出；正式规则和引用映射待确认 |
+| `importance.raw_counts.distinct_meetings` | 非负整数；有效 meeting_coverage 存在时应与 distinct 一致 | 原始场次，不因评分封顶而停止增加 |
+| `importance.raw_counts.independent_speakers` | 非负整数或 null | 明确身份去重人数；null 为未知 |
+| `convergence_status` | `conditions_unresolved` / `conditional_convergence` / `insufficient_evidence` | 条件待核实 / 有条件趋同 / 证据不足；未知枚举显示“趋同待判断” |
+
+所有可选字段均跟随当前快照。M1+M2：2/2 场、4/5、条件待核实；加 M3：3/3 场、5/5、有条件趋同；加 M4：4/4 场、5/5、有条件趋同，但 outcome=`no_new_insight`。低频审批等待仍保留 attention_flag 和待验证假设，不按低分隐藏。
+
+详情和卡片可展开核对演示规则及当前判断的 conditions。有条件趋同必须保留各条件分支；不推导成“所有人都同意”。确认判断、继续验证、认可方向均不等于批准上线。示例 Markdown 报告保留相同解释；用户项目下载服务端报告，前端不改写其正文。
+
+待共同确认：正式评分规则及校准证据、业务取舍分的具体引用映射、更多趋同状态、同场多文件导入规则。此处记录现有支持，不表示上述能力或双方验收已经完成。
+
+## 12. 按场次组织证据标注：当前前端支持
+
+InsightDetail 的 `evidence[].meeting_id` 及 `annotations[]` 均为可选扩展，使用当前快照自己的证据目录，不跨版本补证据。已提供字段按下表处理：
+
+| 字段 | 类型 | 处理规则 |
+| --- | --- | --- |
+| `evidence[].meeting_id` | 非空字符串 | 明确会议归属；不能从 record_id、文件名、发言者或 spark 的参与场次推导 |
+| `annotations[].evidence_id` | 本版 evidence 中已存在的 id | 未关联本版证据的标注只提示缺口，不产生原话按钮 |
+| `annotations[].meeting_id` | 非空字符串 | evidence 未给场次时，可采用唯一且无冲突的标注归属；与 evidence 或同记录其他证据冲突时列入“场次待补齐” |
+| `annotations[].relation` | supports / challenges / supplements / counterexample / qualifies | 与原 relations 兼容，一项证据可有多种关系；未知枚举保持未标注 |
+| `annotations[].condition` | 字符串或 null | 按该条标注展示，不把 null 理解为无条件；异常类型不展示成有效条件 |
+| 原文 Record 的 `meeting_id` | 可选非空字符串 | 若返回，则必须与所选证据明确的会议归属一致，否则不高亮；若缺失，仍核对记录 id、segment_id 和原话，标记场次待核验 |
+
+同一会议有多份记录时，证据显示在同组，材料数和引用数分别标注；不改变会议覆盖的服务端统计。界面支持快速跳转场次、按关系筛选和逐条查看原文。原文的记录、片段和引用文本必须匹配，连续点击的迟到响应不替换最新选择。归属缺口不擅自改写原始材料。
+
+“重复印证”仅取有效 spark 路径中的 corroboration 事件，并且该贡献引用和场次必须对应；不从 supports、认可措辞或相同引用数量推导成认知突破。M2 的标注条件为“跨区报价”，M3 两条分别为“无折扣目录价”和“跨区或特殊折扣”；M4 认可不变成上线批准。
+
+当前示例、用户项目详情及只读历史详情共用此展示；示例 Markdown 保留分组标注和截至该版的引用。当前导入表单已支持显式填写并提交 meeting_id，模拟服务同场多文件导入仍有限制；前端能够展示同组证据不表示导入和服务端能力已实现或验收。

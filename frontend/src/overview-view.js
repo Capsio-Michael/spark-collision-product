@@ -3,6 +3,7 @@ import { icon } from './icons.js';
 import { array, displayCount, filterProjectInsights } from './overview-model.js';
 import { SPARK_FILTERS } from './spark-model.js';
 import { renderSparkCard, renderSparkLegend } from './spark-view.js';
+import { renderInsightMetrics } from './insight-metrics.js';
 
 const badge = (label, color = 'neutral') => `<span class="badge badge-${color}">${e(label)}</span>`;
 const typeBadge = judgment => badge(TYPE_LABELS[judgment?.epistemic_type] || '类型待确认', { fact: 'green', opinion: 'blue', inference: 'purple', hypothesis: 'amber' }[judgment?.epistemic_type] || 'neutral');
@@ -22,7 +23,7 @@ export function renderProjectInsights(overview, query = '', filter = 'all') {
   if (!insights.length) return `<div class="search-empty">${icon('search')}<strong>${array(overview.insights).length ? '没有匹配的关注点' : '本版尚未形成可靠关注点'}</strong><p>${array(overview.insights).length ? '试试其他关键词，或切换到“全部”。' : '保留材料与证据缺口，补充证据后再分析。'}</p>${array(overview.insights).length ? '<button class="button secondary" data-action="clear-filter">清除筛选</button>' : ''}</div>`;
   const changed = new Set(array(overview.changes).filter(item => item.is_breakthrough && overview.outcome !== 'no_new_insight').map(item => item.insight_id));
   return insights.map(insight => `<article class="insight-card"><div class="insight-top"><div class="insight-badges">${typeBadge(insight.judgment)}${insight.dispute_status === 'open' ? badge('存在分歧', 'amber') : changed.has(insight.id) ? badge('本次认知变化', 'orange') : ''}</div><span class="review-label">${insight.judgment.review_status === 'confirmed' ? '已确认判断' : '待核查'}</span></div><button class="card-title" data-live-insight="${e(insight.id)}"><h3>${e(insight.title)}</h3>${icon('arrow')}</button><p class="judgment-text">${e(insight.judgment.text)}</p><div class="conditions">${array(insight.judgment.conditions).map(value => `<span class="condition">${e(value)}</span>`).join('') || '<span class="ov-muted">适用条件待补充</span>'}</div>
-    ${renderSparkCard(insight, overview.evidence, overview.snapshot_version, true)}<div class="ov-coverage"><span>去重发言者 ${displayCount(insight.coverage?.unique_speakers)}</span><span>主动提起 ${displayCount(insight.coverage?.spontaneous_speakers)}</span><span>被问回应 ${displayCount(insight.coverage?.prompted_speakers)}</span></div><p class="ov-coverage-note">${e(insight.coverage?.note || '未提及不等于不关心；主动与被问人数可能重叠。')}${insight.coverage?.identity_incomplete ? ' 部分身份未知，统计不完整。' : ''}</p>
+    ${renderInsightMetrics(insight)}${insight.attention_flag ? `<p class="ov-coverage-note">${e(insight.attention_flag)}</p>` : ''}${renderSparkCard(insight, overview.evidence, overview.snapshot_version, true)}<div class="ov-coverage"><span>去重发言者 ${displayCount(insight.coverage?.unique_speakers)}</span><span>主动提起 ${displayCount(insight.coverage?.spontaneous_speakers)}</span><span>被问回应 ${displayCount(insight.coverage?.prompted_speakers)}</span></div><p class="ov-coverage-note">${e(insight.coverage?.note || '未提及不等于不关心；主动与被问人数可能重叠。')}${insight.coverage?.identity_incomplete ? ' 部分身份未知，统计不完整。' : ''}</p>
     <div class="insight-bottom"><span>查看完整判断与原话</span><span>${displayCount(insight.coverage?.supporting_record_count)} / ${displayCount(insight.coverage?.total_analyzed_record_count)} 份材料覆盖</span></div></article>`).join('');
 }
 

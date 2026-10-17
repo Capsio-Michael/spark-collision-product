@@ -5,9 +5,9 @@ import { renderSparkCard, renderSparkPath } from '../src/spark-view.js';
 import { filterInsights } from '../src/core.js';
 import { filterProjectInsights } from '../src/overview-model.js';
 import { renderProjectOverview } from '../src/overview-view.js';
-import { getDemoOverview, demoRecords } from '../src/fixtures/demo.js';
-import { getDemoInsightDetail } from '../src/fixtures/insight-details.js';
-import { demoHistorySource } from '../src/fixtures/history.js';
+import { getDemoOverview, demoRecords } from './fixtures/demo.js';
+import { getDemoInsightDetail } from './fixtures/insight-details.js';
+import { demoHistorySource } from './fixtures/history.js';
 
 const single = () => getDemoInsightDetail('ins_05');
 const cross = () => getDemoInsightDetail('ins_01');

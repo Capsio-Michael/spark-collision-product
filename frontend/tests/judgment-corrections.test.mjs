@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getDemoInsightDetail } from '../src/fixtures/insight-details.js';
+import { getDemoInsightDetail } from './fixtures/insight-details.js';
 import { CORRECTION_LABELS, CorrectionController, CorrectionJournal, correctionActions, initialCorrectionValues, buildCorrection } from '../src/judgment-corrections-model.js';
 import { renderCorrectionPanel } from '../src/judgment-corrections.js';
 
@@ -85,6 +85,13 @@ test('saving recovery information must succeed before any network mutation', asy
   const app = setup({ storage: { getItem: () => null, setItem() { throw new Error('Quota'); } } });
   await assert.rejects(app.controller.submit(app.detail, 'confirm_current', values(app.detail)), /恢复记录/);
   assert.equal(app.calls.length, 0);
+});
+
+test('explicit NOT_IMPLEMENTED rejects a correction without a fake save or pending write lock', async () => {
+  const app = setup({ send: async () => { throw serverError('NOT_IMPLEMENTED', 501); } });
+  await assert.rejects(app.controller.submit(app.detail, 'confirm_current', values(app.detail)));
+  assert.equal(app.controller.state.status, 'error'); assert.equal(app.journal.read().pending, null);
+  assert.equal(app.synced.length, 0); assert.equal(app.detail.judgment.review_status, 'unreviewed');
 });
 
 test('double clicks cannot create a second operation while the first is pending', async () => {

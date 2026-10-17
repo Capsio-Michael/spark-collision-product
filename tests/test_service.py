@@ -55,6 +55,9 @@ class ServiceTests(unittest.TestCase):
         main1 = v1["insights"][0]
         self.assertEqual(main1["importance"]["score"], 4)
         self.assertEqual(main1["convergence_status"], "conditions_unresolved")
+        cross_quote = next(ev for ev in v1["evidence"] if ev["quote"] == "跨区报价需要销售确认，不能直接发送给客户。")
+        cross_annotation = next(item for item in main1["annotations"] if item["evidence_id"] == cross_quote["id"])
+        self.assertEqual(cross_annotation["condition"], "跨区报价")
         self.assertEqual(v1["outcome"], "updated")
         third = self.import_items([3])
         self.analyze(third, 1)

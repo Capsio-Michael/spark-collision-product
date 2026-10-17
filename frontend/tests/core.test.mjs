@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DIMENSIONS, characterCount, escapeHtml, filterInsights, validateDrafts, readDrafts, saveDrafts } from '../src/core.js';
-import { demoOverview, demoRecords, getDemoOverview } from '../src/fixtures/demo.js';
+import { demoOverview, demoRecords, getDemoOverview } from './fixtures/demo.js';
 import { createApiClient, ApiError } from '../src/api/client.js';
 
 const draft = overrides => ({

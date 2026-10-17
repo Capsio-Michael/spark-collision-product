@@ -3,6 +3,10 @@ import { escapeHtml as e, TYPE_LABELS, SOURCE_LABELS } from './core.js';
 import { DetailSession, RELATION_LABELS, CHANGE_LABELS, CATEGORY_LABELS, array, text, evidenceFor } from './insight-detail-model.js';
 import { createJudgmentCorrections } from './judgment-corrections.js';
 import { renderSparkPath } from './spark-view.js';
+import { sparkView } from './spark-model.js';
+import { renderInsightMetrics } from './insight-metrics.js';
+import { renderMeetingEvidence } from './meeting-evidence-view.js';
+import { meetingForEvidence } from './meeting-evidence-model.js';
 
 const typeLabel = value => TYPE_LABELS[value] || '类型待确认';
 const badge = (label, tone = '') => `<span class="cd-badge ${tone ? `cd-badge-${tone}` : ''}">${e(label)}</span>`;
@@ -31,6 +35,7 @@ function blockBody(block, detail) {
 
 function renderCollision(detail) {
   const card = detail.collision_card;
+  if (!card && ['single', 'cross'].includes(sparkView(detail, detail.evidence, detail.snapshot_version).kind)) return '<section class="cd-section cd-no-collision"><div class="cd-section-title"><h3>认知碰撞卡待补齐</h3></div><p>已有碰撞路径与原话证据；服务尚未提供完整的 A/B/C/D/V 分析，不补造卡片内容。</p><p class="cd-muted">已有变化按本版记录展示，完整分析仍需引擎补齐。</p></section>';
   if (!card) return `<section class="cd-section cd-no-collision"><div class="cd-section-title">${icon('bulb')}<h3>关键事实 / 待验证机会</h3></div><p>本项没有提供完整的认知碰撞卡。保留现有判断与证据，暂不将它标为认知突破。</p><p class="cd-muted">可继续核查原话、适用条件和下一步验证。</p></section>`;
   const steps = [
     ['A', '原来怎么想', card.prior, card.prior_origin === 'analysis_premise' ? '分析前提，非原话' : card.prior_origin === 'recorded' ? '材料中记录的旧判断' : '旧判断来源待确认'],
@@ -65,7 +70,7 @@ export function renderDetailAnalysis(detail) {
   const judgment = detail.judgment;
   const correctionSlot = '<div class="cd-correction-host"></div>';
   return `<div class="cd-analysis-inner"><section class="cd-judgment"><div class="cd-judgment-label">${icon('bulb')}当前判断 ${typeBadge(judgment)}${badge(judgment.review_status === 'confirmed' ? '已确认' : '待核查')}</div><h3>${e(judgment.text)}</h3>${judgment.epistemic_type === 'fact' ? '<p class="cd-fact-note">材料自述只证明“这样说过”；外部事实是否核实，请结合原文与核实依据判断。</p>' : ''}${citations(judgment.evidence_ids, detail)}<p class="cd-rationale">${e(judgment.rationale || '判断依据尚未提供。')}</p></section>
-    ${detail.dispute_status === 'open' ? '' : correctionSlot}
+    ${renderInsightMetrics(detail)}${detail.dispute_status === 'open' ? '' : correctionSlot}
     ${detail.last_change ? `<div class="cd-change-note">${icon('history')}<div><strong>${e(CHANGE_LABELS[detail.last_change.type] || '变化类型待确认')}</strong><span>${e(detail.last_change.reason || '变化原因尚未提供。')}</span></div></div>` : ''}
     ${renderConflict(detail)}${detail.dispute_status === 'open' ? correctionSlot : ''}${renderSparkPath(detail)}${renderCollision(detail)}
     <section class="cd-section"><div class="cd-section-title">${icon('branch')}<h3>哪些条件下成立？还有什么解释？</h3></div><div class="cd-boundaries"><div><h4>适用条件</h4>${list(judgment.conditions, '适用条件尚未提供，不能理解为无条件成立。')}</div><div><h4>其他可能的解释</h4>${list(judgment.alternative_explanations, '尚未提供其他解释；这不代表已经排除其他可能。')}</div><div class="cd-gap"><h4>仍缺什么证据</h4>${list(judgment.evidence_gaps, '未列出证据缺口，不代表已经得到充分验证。')}</div></div></section>
@@ -82,14 +87,19 @@ function sourceContent(state) {
   return `<div class="cd-source-document"><div class="cd-source-document-heading"><div>${badge(record.material_basis === 'synthetic' ? '合成材料' : record.material_basis === 'authorized' ? '已获授权' : '材料来源待确认')}<span>${e(record.source_date || '日期未提供')}</span></div><h4>${e(record.title || '未命名材料')}</h4><p>${e(record.source_name || '来源名称未提供')} · ${e(SOURCE_LABELS[record.source_type] || '材料')}</p><p>${e(speaker?.label || '发言者身份未知')} · ${e({ participant_statement: '材料中的自述', provided_record: '提供的原始记录', unknown: '证据来源类型未知' }[evidence.claim_origin] || '证据来源类型未知')}</p></div>${array(record.segments).map(segment => `<section class="cd-source-paragraph ${segment.id === evidence.segment_id ? 'cd-highlight' : ''}" ${segment.id === evidence.segment_id ? 'data-cd-highlight tabindex="-1"' : ''}><div class="cd-paragraph-label">段落 ${e(segment.paragraph_index ?? '未知')}${segment.id === evidence.segment_id ? `<span>${e(evidence.label || '当前引用')} · 引用所在段落</span>` : ''}</div><p>${e(segment.text)}</p></section>`).join('')}<p class="cd-source-footnote">原文按服务端段落展示，整段高亮；未改写原始材料。</p></div>`;
 }
 
+function sourceMeeting(state) {
+  if (state.sourceStatus !== 'ready') return '';
+  const actual = typeof state.record?.meeting_id === 'string' && state.record.meeting_id.trim() ? state.record.meeting_id : null;
+  const expected = meetingForEvidence(state.detail, state.selectedEvidenceId);
+  return `<p class="me-source-meta">${actual ? `原文记录场次：${e(actual)}` : expected ? `标注场次：${e(expected)}；原文接口未提供会议归属，场次待核验。` : '原文场次待补齐；保留可核查的文件与段落。'}</p>`;
+}
+
 export function renderDetailEvidence(state) {
   const detail = state.detail;
-  const items = evidenceFor(detail, state.filter);
-  const links = array(detail?.relations);
-  return `<div class="cd-evidence-heading"><div>${icon('quote')}<h3>证据核查</h3><span>${array(detail?.evidence).length} 条原话</span></div><p>先看出处，再判断是否支持这个结论。</p></div>
+  return `<div class="cd-evidence-heading"><div>${icon('quote')}<h3>按会议核查证据</h3><span>${array(detail?.evidence).length} 条原话</span></div><p>本版 v${e(detail?.snapshot_version ?? '待确认')} · 标注是分析关系，原话是核查依据；未注明条件不代表无条件。</p></div>
     <div class="cd-evidence-filters" role="group" aria-label="按证据关系筛选">${Object.entries(RELATION_LABELS).filter(([key]) => key !== 'unknown' || evidenceFor(detail, 'unknown').length).map(([key, label]) => `<button type="button" data-cd-filter="${key}" aria-pressed="${state.filter === key}">${label}<span>${evidenceFor(detail, key).length}</span></button>`).join('')}</div>
-    <div class="cd-evidence-list" aria-label="原话证据列表">${items.length ? items.map(item => `<button type="button" class="cd-evidence-item ${state.selectedEvidenceId === item.id ? 'cd-evidence-selected' : ''}" data-cd-evidence="${e(item.id)}" aria-pressed="${state.selectedEvidenceId === item.id}"><span class="cd-evidence-item-top"><strong>${e(item.label || '引用')}</strong><span>${links.filter(link => link.evidence_id === item.id).map(link => e(RELATION_LABELS[link.relation] || '关系待确认')).join(' · ') || '关系未标注'}</span>${icon('arrow')}</span><span class="cd-evidence-quote">${e(item.quote || '原话尚未提供')}</span><span class="cd-evidence-method">${e({ spontaneous: '主动提起', prompted: '被问回应', unknown: '提问方式未知' }[item.elicitation] || '提问方式未知')}</span></button>`).join('') : '<p class="cd-filter-empty">这个分类下没有提供证据。可切换其他分类。</p>'}</div>
-    <section class="cd-source-pane" aria-label="原始材料与上下文">${sourceContent(state)}</section>`;
+    <div class="cd-evidence-list" aria-label="按会议分组的原话证据">${renderMeetingEvidence(detail, state)}</div>
+    <section class="cd-source-pane" aria-label="原始材料与上下文">${sourceMeeting(state)}${sourceContent(state)}</section>`;
 }
 
 let activeDetail = null;
@@ -106,7 +116,7 @@ export function openInsightDetail(options) {
   dialog.innerHTML = `<header class="cd-header"><div><span class="cd-eyebrow">INSIGHT EXPLORER · ${options.example ? '合成案例' : options.mode === 'mock' ? '模拟引擎结果' : '引擎分析'}</span><h2 id="cd-dialog-title">认知碰撞详情</h2></div><div class="cd-header-actions"><span class="cd-version">版本 ${e(options.version ?? '待确认')}</span><button type="button" class="cd-close" data-cd-close aria-label="关闭详情并返回">${icon('close')}</button></div></header><nav class="cd-section-nav" aria-label="详情章节"><button type="button" data-cd-jump="top">当前判断</button><button type="button" data-cd-jump="spark">碰撞路径</button><button type="button" data-cd-jump="collision">认知变化</button><button type="button" data-cd-jump="validations">验证计划</button><button type="button" data-cd-jump="evidence">原话证据 ${icon('arrow')}</button></nav><div class="cd-body"><main class="cd-analysis" aria-label="完整认知分析"></main><aside class="cd-evidence" aria-label="证据与原文核查"></aside></div><div class="cd-live sr-only" role="status" aria-live="polite"></div>`;
   document.body.append(dialog); document.body.classList.add('cd-modal-open');
   const analysis = dialog.querySelector('.cd-analysis'); const evidencePane = dialog.querySelector('.cd-evidence');
-  let lastDetail = null, lastStatus = null, lastSource = null, correctionView = null, initialSparkShown = false;
+  let lastDetail = null, lastStatus = null, lastSource = null, lastSourceEvidence = null, lastSourceStatus = 'idle', correctionView = null, initialSparkShown = false;
   const session = new DetailSession({ ...options, onChange(state) {
     if (!dialog.isConnected) return;
     if (state.status !== lastStatus || state.detail !== lastDetail) {
@@ -131,11 +141,12 @@ export function openInsightDetail(options) {
     evidencePane.innerHTML = state.status === 'ready' ? renderDetailEvidence(state) : '<div class="cd-source-empty">' + icon('quote') + '<strong>原文核查区</strong><p>详情读取完成后，可点击引用查看原话。</p></div>';
     if (focusedEvidence) [...evidencePane.querySelectorAll('[data-cd-evidence]')].find(item => item.dataset.cdEvidence === focusedEvidence)?.focus({ preventScroll: true });
     else if (focusedFilter) [...evidencePane.querySelectorAll('[data-cd-filter]')].find(item => item.dataset.cdFilter === focusedFilter)?.focus({ preventScroll: true });
-    if (state.sourceStatus === 'ready' && state.record !== lastSource) {
-      lastSource = state.record;
+    if (state.sourceStatus === 'ready' && (state.record !== lastSource || state.selectedEvidenceId !== lastSourceEvidence || lastSourceStatus !== 'ready')) {
+      lastSource = state.record; lastSourceEvidence = state.selectedEvidenceId;
       requestAnimationFrame(() => dialog.querySelector('[data-cd-highlight]')?.scrollIntoView({ block: 'nearest', behavior: 'instant' }));
     } else if (evidencePane.querySelector('.cd-source-pane')) evidencePane.querySelector('.cd-source-pane').scrollTop = sourceScroll;
     if (evidencePane.querySelector('.cd-evidence-list')) evidencePane.querySelector('.cd-evidence-list').scrollTop = listScroll;
+    lastSourceStatus = state.sourceStatus;
     dialog.querySelector('.cd-live').textContent = state.sourceStatus === 'loading' ? '正在读取原话' : state.sourceStatus === 'ready' ? '原话已定位，对应段落已高亮' : state.sourceStatus === 'error' ? state.sourceError : state.status === 'ready' ? '完整认知详情已打开' : '';
   } });
   let correctionStorage;
@@ -162,6 +173,10 @@ export function openInsightDetail(options) {
     if (button.hasAttribute('data-cd-close') && !correctionView?.isBusy()) dialog.close();
     if (button.hasAttribute('data-cd-retry')) session.load();
     if (button.hasAttribute('data-cd-retry-source')) session.selectEvidence(session.state.selectedEvidenceId);
+    if (button.hasAttribute('data-cd-meeting-index')) {
+      const index = Number(button.dataset.cdMeetingIndex);
+      if (Number.isSafeInteger(index) && index >= 0) evidencePane.querySelectorAll('.me-group')[index]?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    }
     if (button.dataset.cdEvidence) {
       session.selectEvidence(button.dataset.cdEvidence);
       if (window.matchMedia('(max-width: 800px)').matches) evidencePane.scrollIntoView({ block: 'start' });

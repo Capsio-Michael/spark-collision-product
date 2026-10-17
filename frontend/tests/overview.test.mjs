@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { MaterialWorkflow, WORKSPACE_KEY } from '../src/material-workflow.js';
 import { validateOverview, displayCount, filterProjectInsights } from '../src/overview-model.js';
 import { renderProjectOverview, renderProjectInsights, renderProjectDimension } from '../src/overview-view.js';
-import { getDemoOverview } from '../src/fixtures/demo.js';
+import { getDemoOverview } from './fixtures/demo.js';
 
 function store(seed = {}) {
   const values = new Map(Object.entries(seed)); let writes = 0;

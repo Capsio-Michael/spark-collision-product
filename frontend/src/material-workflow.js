@@ -8,14 +8,16 @@ const initial = () => ({
   drafts: [], removed_drafts: [], editor_buffers: {}, submissions: {},
   project: null, server_records: [], overview: null, active_job: null, last_job: null, pending: {},
 });
-const definitiveErrors = new Set(['VALIDATION_ERROR', 'TEXT_TOO_LONG', 'LIMIT_EXCEEDED', 'PAYLOAD_TOO_LARGE', 'VERSION_CONFLICT', 'RECORD_ALREADY_ANALYZED', 'PROJECT_BUSY', 'RECORD_CONFLICT', 'IDEMPOTENCY_CONFLICT']);
+const definitiveErrors = new Set(['VALIDATION_ERROR', 'TEXT_TOO_LONG', 'LIMIT_EXCEEDED', 'PAYLOAD_TOO_LARGE', 'VERSION_CONFLICT', 'RECORD_ALREADY_ANALYZED', 'PROJECT_BUSY', 'RECORD_CONFLICT', 'IDEMPOTENCY_CONFLICT', 'MEETING_GROUPING_UNSUPPORTED', 'PARTICIPANT_CONFLICT']);
 export function normalizeBaseUrl(value) {
   const url = new URL(value.trim());
   if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(url.hostname) || url.username || url.password || url.search || url.hash || url.pathname.replace(/\/$/, '') !== '/api/v1') throw new Error('本机联调地址需为 http://127.0.0.1:端口/api/v1 或 http://localhost:端口/api/v1。');
   return url.href.replace(/\/$/, '');
 }
 export function materialPayload(record) {
-  return Object.fromEntries(['client_record_id', 'title', 'source_type', 'source_date', 'source_name', 'material_basis', 'authorization_note', 'participants', 'content'].map(key => [key, record[key]]));
+  const payload = Object.fromEntries(['client_record_id', 'title', 'source_type', 'source_date', 'source_name', 'material_basis', 'authorization_note', 'participants', 'content'].map(key => [key, record[key]]));
+  if (typeof record.meeting_id === 'string' && record.meeting_id.trim()) payload.meeting_id = record.meeting_id.trim();
+  return payload;
 }
 function checkServerSnapshot(overview, projectId) {
   validateOverview(overview, projectId);
@@ -31,7 +33,7 @@ export async function decodeMaterialFiles(files, makeId = () => crypto.randomUUI
     catch { throw new Error(`${file.name}：不是有效的 UTF-8 文本，请转换编码后重试。`); }
     if (!content.trim()) throw new Error(`${file.name}：内容为空。`);
     if (Array.from(content).length > 20000) throw new Error(`${file.name}：超过 20,000 个字符。`);
-    records.push({ client_record_id: makeId(), title: file.name.replace(/\.(txt|md)$/i, ''), source_type: 'interview', source_date: null, source_name: file.name, material_basis: '', authorization_note: null, participants: [], content });
+    records.push({ client_record_id: makeId(), title: file.name.replace(/\.(txt|md)$/i, ''), source_type: 'other', source_date: null, source_name: file.name, material_basis: '', authorization_note: null, participants: [], content });
   }
   return records;
 }

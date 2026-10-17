@@ -1,12 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MaterialWorkflow, WORKSPACE_KEY, decodeMaterialFiles, normalizeBaseUrl } from '../src/material-workflow.js';
+import { MaterialWorkflow, WORKSPACE_KEY, decodeMaterialFiles, normalizeBaseUrl, materialPayload } from '../src/material-workflow.js';
 import { materialRows } from '../src/material-list.js';
 import { validateDrafts } from '../src/core.js';
 
 const draft = (id = 'draft_01', overrides = {}) => ({
   client_record_id: id, title: '合成访谈', content: '客服：报价需要人工确认。', source_type: 'interview',
   source_date: null, source_name: '粘贴记录', participants: [], material_basis: 'synthetic', authorization_note: null, ...overrides,
+});
+
+test('optional explicit meeting IDs survive draft recovery and reach the import payload', () => {
+  const storage = memoryStorage(), { api } = backend();
+  const workflow = makeWorkflow(storage, api);
+  workflow.save([draft('meeting-draft', { meeting_id: ' M1 ' })]);
+  const restored = makeWorkflow(storage, api);
+  assert.equal(materialPayload(restored.state.drafts[0]).meeting_id, 'M1');
+  assert.ok(!Object.hasOwn(materialPayload(draft()), 'meeting_id'));
+  assert.ok(!Object.hasOwn(materialPayload(draft('blank', { meeting_id: ' ' })), 'meeting_id'));
+  assert.match(validateDrafts([draft('bad', { meeting_id: 12 })]), /会议标识/);
+  assert.match(validateDrafts([draft('long', { meeting_id: 'x'.repeat(121) })]), /会议标识/);
+});
+
+test('definitive service limitations unlock unsubmitted drafts while preserving their content', async () => {
+  for (const code of ['MEETING_GROUPING_UNSUPPORTED', 'PARTICIPANT_CONFLICT']) {
+    const { api } = backend(); api.importRecords = async () => { throw Object.assign(new Error(code), { code }); };
+    const workflow = makeWorkflow(memoryStorage(), api);
+    workflow.save([draft('rejected', { meeting_id: 'M1' })]); await workflow.connect();
+    await assert.rejects(workflow.submit(['rejected']), error => error.code === code);
+    assert.equal(workflow.state.pending.import, undefined); assert.equal(workflow.isEditable('rejected'), true);
+    assert.equal(workflow.state.drafts[0].meeting_id, 'M1'); assert.equal(workflow.state.drafts[0].content, draft().content);
+  }
 });
 function memoryStorage(seed = {}) {
   const values = new Map(Object.entries(seed));
@@ -65,6 +88,7 @@ test('UTF-8 imports preserve source, BOM handling, and per-file metadata', async
   assert.equal(files[0].title, '访谈'); assert.equal(files[0].source_name, '访谈.txt');
   assert.equal(files[0].content, '客服：保留原文。\r\n第二段');
   assert.equal(files[0].material_basis, '');
+  assert.equal(files[0].source_type, 'other', 'a filename does not establish that a record is an interview');
   await assert.rejects(decodeMaterialFiles([file('坏编码.txt', Uint8Array.from([0xff, 0xfe]))]), /UTF-8/);
   await assert.rejects(decodeMaterialFiles([file('不支持.pdf', bytes)]), /TXT/);
   await assert.rejects(decodeMaterialFiles([file('空文件.md', new Uint8Array())]), /内容为空/);

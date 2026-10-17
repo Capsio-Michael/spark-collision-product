@@ -272,7 +272,7 @@ def build_analysis(project, records, previous, version):
             {
                 "meeting_id": found[key]["meeting_id"], "evidence_id": found[key]["id"],
                 "relation": annotation_relation[key],
-                "condition": "无折扣目录价" if key == "m3a" else "跨区或特殊折扣" if key in ("m2", "m3b") else None,
+                "condition": "无折扣目录价" if key == "m3a" else "跨区报价" if key == "m2" else "跨区或特殊折扣" if key == "m3b" else None,
             }
             for key in main_keys
         ]
