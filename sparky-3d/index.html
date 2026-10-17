@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sparky 真实 3D 预览</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+    {"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/"}}
+  </script>
+</head>
+<body>
+  <main class="layout">
+    <div class="intro">
+      <p class="eyebrow">SPARK COLLISION · LOCAL MODEL PREVIEW</p>
+      <h1>Sparky 在这里</h1>
+      <p class="lead">一个可旋转的真实 3D 角色，用动作表达正在读取、思考、发现和完成。拖动模型看看侧面与背面。</p>
+      <div class="panel">
+        <h2>状态</h2>
+        <div class="choices" id="states">
+          <button data-state="idle" aria-pressed="true">待机呼吸</button>
+          <button data-state="reading">正在读取</button>
+          <button data-state="thinking">正在思考</button>
+          <button data-state="insight">发现火花</button>
+          <button data-state="complete">完成回应</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>颜色</h2>
+        <div class="choices" id="colors">
+          <button data-color="leaf" aria-pressed="true">叶绿</button>
+          <button data-color="mint">薄荷</button>
+          <button data-color="sky">天空</button>
+          <button data-color="lilac">淡紫</button>
+        </div>
+      </div>
+      <p class="note">所有资产已随页面打包。动画仅表达已知任务状态，不暗示 AI 实际处理进度。减少动态效果的系统设置会关闭循环动作。</p>
+    </div>
+    <section class="stage" aria-label="Sparky 三维模型">
+      <div id="sparky" class="sparky-3d-host"></div>
+      <div class="views" id="views">
+        <button data-view="front">正面</button>
+        <button data-view="side">侧面</button>
+        <button data-view="back">背面</button>
+      </div>
+      <span class="badge">可旋转 GLB · 本地预览</span>
+    </section>
+  </main>
+  <script type="module">
+    import { mountSparky } from './sparky-viewer.js';
+    const viewer = await mountSparky(document.getElementById('sparky'));
+    window.sparkyViewer = viewer;
+    for (const [container, key, method] of [
+      ['states', 'state', 'setState'], ['colors', 'color', 'setColor'], ['views', 'view', 'setView']
+    ]) {
+      document.getElementById(container).addEventListener('click', event => {
+        const button = event.target.closest(`button[data-${key}]`);
+        if (!button) return;
+        viewer[method](button.dataset[key]);
+        for (const child of button.parentElement.querySelectorAll('button')) child.setAttribute('aria-pressed', child === button);
+      });
+    }
+  </script>
+</body>
+</html>
