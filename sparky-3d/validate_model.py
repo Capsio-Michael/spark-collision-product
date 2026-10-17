@@ -18,11 +18,12 @@ assert bin_start + 8 + bin_size == len(blob)
 assert data["asset"]["version"] == "2.0"
 assert len(data["buffers"]) == 1 and data["buffers"][0]["byteLength"] <= bin_size
 assert all("uri" not in buffer for buffer in data["buffers"])
+assert not data.get("images"), "The model should be self-contained without external textures"
 for view in data["bufferViews"]:
     assert view["byteOffset"] + view["byteLength"] <= bin_size
 for accessor in data["accessors"]:
     view = data["bufferViews"][accessor["bufferView"]]
-    component_bytes = {5123: 2, 5126: 4}[accessor["componentType"]]
+    component_bytes = {5123: 2, 5125: 4, 5126: 4}[accessor["componentType"]]
     components = {"SCALAR": 1, "VEC3": 3}[accessor["type"]]
     assert accessor["count"] * component_bytes * components <= view["byteLength"]
 
@@ -30,16 +31,17 @@ nodes = {item["name"]: item for item in data["nodes"]}
 for name in (
     "SparkyRoot", "BodyBreath", "HeadRig", "Eye_L_Rig", "Eye_R_Rig",
     "Arm_R_Rig", "ForeheadSpark", "PearBody", "CreamBelly", "SmileLine",
-    "EyeWhite_L", "EyeWhite_R", "Foot_L", "Foot_R",
+    "EyeWhite_L", "EyeWhite_R", "FootVolume_L", "FootVolume_R",
 ):
     assert name in nodes, name
 for side in "LR":
-    for finger in range(1, 4):
-        assert f"Finger_{side}_{finger}" in nodes
-        assert f"Toe_{side}_{finger}" in nodes
+    assert f"HandVolume_{side}" in nodes
 material_names = {item["name"] for item in data["materials"]}
 assert {"Skin", "SkinShade", "Belly", "GoldSpark"} <= material_names
 assert len(data["meshes"]) >= 10
-assert len(data["nodes"]) >= 45
+assert {"OrganicFrogHead", "ConnectedThreeFingerHand", "ConnectedThreeToeFoot", "CurvedCreamJaw"} <= {
+    item["name"] for item in data["meshes"]
+}
+assert len(data["nodes"]) >= 25
 assert not data.get("animations"), "Animation is driven by the viewer and documented as such"
 print(f"PASS {path.name}: {len(blob)} bytes, {len(nodes)} named nodes, {len(data['meshes'])} meshes, embedded binary only")

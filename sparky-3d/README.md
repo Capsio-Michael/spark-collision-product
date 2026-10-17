@@ -36,7 +36,7 @@ sparky.setView('side');
 // 页面卸载时：sparky.dispose();
 ```
 
-宿主元素需要明确宽高，例如 `width: 100%; height: 420px`。`mountSparky` 异步返回 `{kind, model, setState, setColor, setView, dispose}`。`kind` 为 `real-3d` 或 `static-fallback`。`color` 可传 `leaf`、`mint`、`sky`、`lilac`，也可传 `{body:'#82c852', belly:'#eee9c8'}`。状态可用 `idle`、`reading`、`thinking`、`insight`、`complete`。`setView` 支持 `front`、`side`、`back`，此外支持鼠标和触控拖动旋转。
+宿主元素需要明确宽高，例如 `width: 100%; height: 420px`。`mountSparky` 异步返回 `{kind, model, setState, setColor, setView, dispose}`。`kind` 为 `real-3d` 或 `static-fallback`。`color` 可传 `leaf`、`mint`、`sky`、`lilac`，也可传 `{body:'#70ad47', belly:'#eae8cc'}`。状态可用 `idle`、`reading`、`thinking`、`insight`、`complete`。`setView` 支持 `front`、`side`、`back`，此外支持鼠标和触控拖动旋转。
 
 状态仅用于表示产品已有的任务阶段：`reading` 收到材料、`thinking` 正在分析、`insight` 真正生成了有依据的火花、`complete` 结果可查看。**不能用计时器制造假的 AI 进度或没有依据的火花。** 页面应以服务端真实状态驱动；如果没有状态源，使用 `idle` 即可。
 
@@ -46,7 +46,11 @@ sparky.setView('side');
 
 2026-10-17 在 Mac 上使用本地 Chrome 和现有 Playwright，对 HTTP 离线预览进行了实际画面检查：正面、侧面、背面和拖动后的斜视角均可见立体形体；五种状态都能切换；换色、眨眼、完成抬手和减少动态效果均已验证。GLB 加载后为 `real-3d`，没有页面异常或控制台错误；模拟 GLB 请求失败时，`static-fallback` 图片正常显示。脚部完整位于画面内，未见严重穿模或动作变形。此前发现的凸出肚皮、断续嘴线及画面裁脚已修正。
 
-与参考 PNG 对照：绿色蛙形轮廓、大眼、奶油色下巴与肚皮、三指/三趾、额头四角火花得以保留；目前是由椭球和曲面组成的简化玩具风格，并未逐像素复刻参考图的柔和表面、眼窝和肢体连接。侧面能看到眼球和口鼻的明显突出，这是本版模型的外观限制。GLB 没有动画片段，动作完全由 `sparky-viewer.js` 的节点变换驱动，便于按真实服务状态调用。
+与参考 PNG 对照：绿色蛙形轮廓、大眼、奶油色下巴与肚皮、三指/三趾、额头四角火花得以保留。收到“差距很大”的反馈后，头部、眼眶、下颌、手和脚改为连通的三维曲面，重调了眼形、肢体比例及肤色。它仍是简化模型，缺少参考图的精细皮肤质感、柔和眼窝及专业雕刻细节。GLB 没有动画片段，动作完全由 `sparky-viewer.js` 的节点变换驱动，便于按真实服务状态调用。
+
+## 展示用法
+
+已确认的 PNG 是形象主视觉的准稿。PPT 和官网首页的大幅品牌图应使用 `assets/sparky-fallback.png`；这版 GLB 用于注明“可旋转 3D 原型”的交互区域。两者不应混称为同等精细度的成品。预览页提供“查看已确认的样式图”链接，便于直接核对。
 
 ## 构建与检查
 
@@ -60,4 +64,4 @@ node --check sparky-3d/sparky-viewer.js
 
 ## 局限
 
-这是可供展示和交互验证的低复杂度模型，保留圆润轮廓、浅色肚皮、大眼睛、三指与额头火花；没有骨骼绑定、表情 blendshape 或专业级表面雕刻。若最终形象需要逐像素贴合参考图，后续可用 DCC 工具继续精修模型，但本版使用和展示不依赖它。
+这是可供展示和交互验证的程序生成模型，保留圆润轮廓、浅色肚皮、大眼睛、三指与额头火花；没有骨骼绑定、表情 blendshape、贴图或专业级表面雕刻。若最终形象需要高度贴合参考图，后续需要人工建模和材质精修；本版使用和展示不依赖 Blender、外部账号或付费服务。

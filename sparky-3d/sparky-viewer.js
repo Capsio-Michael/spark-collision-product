@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 export const SPARKY_STATES = Object.freeze(['idle', 'reading', 'thinking', 'insight', 'complete']);
 export const SPARKY_PALETTES = Object.freeze({
-  leaf: { body: '#82c852', belly: '#eee9c8' },
+  leaf: { body: '#70ad47', belly: '#eae8cc' },
   mint: { body: '#7bcdb5', belly: '#f1eed9' },
   sky: { body: '#82bde1', belly: '#f4f0d9' },
   lilac: { body: '#b5a2d7', belly: '#f3edda' },
@@ -94,16 +94,16 @@ export async function mountSparky(host, { state = 'idle', color = 'leaf', onRead
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.65;
+  renderer.toneMappingExposure = 1.20;
   host.prepend(renderer.domElement);
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
-  scene.add(new THREE.HemisphereLight(0xe7f8f1, 0x60766c, 2.3));
-  const key = new THREE.DirectionalLight(0xfff4d9, 3.0);
+  scene.add(new THREE.HemisphereLight(0xe7f8f1, 0x60766c, 1.8));
+  const key = new THREE.DirectionalLight(0xfff4d9, 2.2);
   key.position.set(-3, 6, 5);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0x9bdeba, 1.35);
+  const rim = new THREE.DirectionalLight(0x9bdeba, .9);
   rim.position.set(4, 3, -5);
   scene.add(rim);
   const ground = new THREE.Mesh(new THREE.CircleGeometry(1.2, 48), new THREE.MeshBasicMaterial({ color: 0x33584a, transparent: true, opacity: .18, depthWrite: false }));
