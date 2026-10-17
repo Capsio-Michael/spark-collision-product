@@ -29,6 +29,8 @@ Dashboard 只放能帮助判断“值得看哪条”的信息；关系网络、�
 
 可复用的 [独立预览](../demo/frog-preview/index.html) 放在本分支，供一鸣复制 SVG/CSS/状态映射；它不是一鸣工作台的正式集成。默认色、四种颜色变量和状态对照见预览目录的 README。不要依据没有提供的“小涛”头像去复刻个人形象。
 
+用户认可的 [静态 3D 风格参考图](../references/Sparky_3D_reference_v1.png) 与 [模型／动作说明](../references/Sparky_3D_generation_brief_v1.txt) 也在此分支。前者是后续视觉方向，当前 SVG 预览是独立样例；目前没有 GLB、骨骼动画或已集成的 3D 组件。
+
 ## 内容 fixture 到页面的映射
 
 `insights-annotations.fixture.json` 用 `M1/M2` 标会议，用 `P001`–`P078`、`Q001`–`Q028` 标原文段落，用 `claim_id` 标可被回应的具体主张。一个标注同时给出 `content_type` 和可为空的 `relation`；关系非空时 `target_claim_id` 指向已有主张。前端展示关系时要让用户同时看到两端原话，不能只画一条没有语义的线。

@@ -1,0 +1,27 @@
+Sparky 3D 模型生成指令 v1
+用途：智慧火花平台首页角色。参考 PNG 是静态 3D 风格概念图，不是可旋转模型或动画文件。
+
+可直接复制到 3D 模型生成器的英文指令：
+Create one original stylized 3D frog mascot named Sparky for an enterprise insight-analysis platform. Follow the supplied reference image. The character is clever, approachable, curious and quietly confident, with a polished, rounded cartoon aesthetic.
+Use a compact pear-shaped body, a large friendly head, two elevated eyes, a subtle closed smile, two short arms and two short legs. Each hand has three rounded fingers; each foot has three rounded toes. No tail or extra limbs. Use soft leaf-green matte vinyl skin, a pale cream-green belly and dark expressive pupils. Keep the silhouette readable at small sizes. Avoid realistic wet amphibian skin, slime, excessive gloss and tiny surface details.
+Place one tiny golden four-point spark flat on the forehead as a texture or decal, not a floating or protruding object. No clothing, accessories, tools, text, watermarks, branded logos, extra characters, pedestal or scene geometry.
+Create a complete 360-degree character consistent with the visible reference. Use a relaxed symmetrical A-pose, arms slightly away from the body, feet apart, with all hands and feet visible. Produce clean efficient geometry, usable UVs and simple PBR materials. Keep body, belly, eyes and spark materials separately editable for color customization. Where supported, export a web-ready GLB or glTF with embedded textures. The immediate deliverable is a clean static character suitable for subsequent rigging and animation; do not claim rigging or animation unless actually included and verified.
+
+动作需求（在生成器支持或后续绑定阶段制作）：
+idle：轻微呼吸、偶尔眨眼，可循环。
+reading：视线轻轻移动、小幅低头，可循环。
+thinking：轻歪头、目光变化，可循环。
+insight：抬头、额头火花材质轻微亮起，单次短动作。
+complete：微笑点头或轻挥手，单次短动作。
+动作幅度克制，不遮挡上传按钮和Dashboard。减少动态效果设置下提供静态形象。
+动作状态由应用真实状态驱动，不用动画伪造AI进度。
+
+首页接入要求：
+默认绿色，身体/腹部/火花可换色。角色样式选择不是上传前必经步骤。
+入口仍只有一个主操作：上传资料。点角色后才展开外观设置。
+3D资源未加载或性能不足时回退到PNG参考图或静态SVG。
+模型导出后检查正侧背面、手指脚趾、眼睛、贴图和体积；绑定后检查各动作与网页实际性能。生成结果不自动等于可上线。
+
+参考图使用：
+先使用本次单角色全身PNG。多视图若需要，单独生成一致的正/侧/背面；不要把多只青蛙的拼图误作单对象输入。
+不把该参考图称为已生成的GLB、骨骼动画或已上线首页。
