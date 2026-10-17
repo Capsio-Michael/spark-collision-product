@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sparky 小青蛙｜独立动效预览</title>
+  <link rel="stylesheet" href="frog.css">
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; background: #071922; color: #ecf8f2; }
+    main { max-width: 780px; margin: 0 auto; padding: 48px 24px 90px; }
+    .eyebrow { color: #b9ed68; font-size: 13px; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 10px 0 12px; font-size: clamp(28px, 5vw, 46px); }
+    p { color: #b6cbc7; line-height: 1.7; }
+    .card { margin-top: 26px; padding: 26px; border: 1px solid #31565a; border-radius: 24px; background: #0e2830; }
+    .stage { display: flex; align-items: center; justify-content: center; min-height: 230px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .controls button { border: 1px solid #4d7374; border-radius: 10px; padding: 10px 13px; color: #f0faf5; background: #1b3a40; cursor: pointer; }
+    .controls button[aria-pressed="true"] { border-color: #c9ee78; background: #31564c; }
+    .controls button:focus-visible { outline: 3px solid #efffb0; outline-offset: 3px; }
+    .hint { margin: 0; font-size: 13px; }
+    .small { font-size: 13px; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Original SVG / Component preview</div>
+  <h1>Sparky 小青蛙</h1>
+  <p>交给 Sparky，发现交流中的智慧火花。这是暂定角色名和独立组件样例，不连接分析服务，也不表示名称已做商标核查。点击青蛙选择圆润或像素样式与四种配色。下方状态按钮只预览动效，<strong>不表示 AI 正在处理或已经完成</strong>。</p>
+  <section class="card" aria-label="Sparky 小青蛙外观与状态预览">
+    <div class="stage"><div id="frog-host"></div></div>
+    <p class="hint">点青蛙打开外观选项；外观选择不改变分析方式</p>
+    <div class="controls" aria-label="动效状态样例">
+      <button type="button" data-preview-state="reading">阅读样例</button>
+      <button type="button" data-preview-state="thinking">思考样例</button>
+      <button type="button" data-preview-state="spark">发现火花样例</button>
+      <button type="button" data-preview-state="complete">完成样例</button>
+    </div>
+    <div class="controls"><button type="button" id="compact">切换 Dashboard 小尺寸</button></div>
+  </section>
+  <p class="small">正式接入时由材料保存与分析任务的真实状态调用 <code>setState()</code>；无任务、失败或仅预置内容时，不播放虚构进度。详细证据阅读推荐小尺寸或静止。</p>
+</main>
+<script type="module">
+  import { mountFrog } from './frog.js';
+  const frog = mountFrog(document.querySelector('#frog-host'));
+  const buttons = document.querySelectorAll('[data-preview-state]');
+  function preview(state) {
+    frog.setState(state);
+    buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.previewState === state)));
+  }
+  buttons.forEach(button => button.addEventListener('click', () => preview(button.dataset.previewState)));
+  let compact = false;
+  document.querySelector('#compact').addEventListener('click', () => { compact = !compact; frog.setCompact(compact); });
+  preview('reading');
+</script>
+</body>
+</html>

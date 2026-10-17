@@ -12,6 +12,10 @@
 
 ## 文档导航
 
+- [最新前端与用例 Demo 指南](docs/demo-guide.md)：本轮轻量洞察体验、单一上传入口、设计评审合成案例与实际能力边界；本轮展示优先按此执行。
+- [三分钟与 90 秒口播脚本](docs/demo-script.md)：具体点击、原话和失败退路。
+- [设计评审合成材料](demo/scenarios/design-review/README.md)：两场完整模拟讨论和可核对的内容 fixture。
+- [小青蛙独立组件预览](demo/frog-preview/README.md)：供一鸣复用的原创 SVG/CSS 动效样例，尚未集成工作台。
 - [产品定义](docs/product-definition.md)：对象、证据与判断规则、输出结构，以及市场与运营验证范围。
 - [MVP 范围与验收](docs/mvp-acceptance.md)：今天做什么、怎样证明完成。
 - [整体架构图](docs/architecture.md)：现有前端、待建服务与跨会议认知数据链路。

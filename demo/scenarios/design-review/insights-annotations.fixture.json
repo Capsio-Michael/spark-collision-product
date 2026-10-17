@@ -1,0 +1,101 @@
+{
+  "fixture_type": "editorial_content_fixture_not_api_response",
+  "status": "合成模拟，供前端内容和演示脚本使用；不是现有引擎输出",
+  "project": "澄川智造品牌官网沟通（虚构企业）",
+  "source_meetings": [
+    {"meeting_id": "M1", "file": "M1-品牌官网设计评审.md", "paragraph_prefix": "P", "turn_count": 78},
+    {"meeting_id": "M2", "file": "M2-展会专题回看.md", "paragraph_prefix": "Q", "turn_count": 28}
+  ],
+  "provenance_rules": {
+    "quote": "每个 quote 是所指段落中的连续原文子串",
+    "content_type": "事实陈述只表示参与者这样说过，不表示外部事实已核实",
+    "relation": "关系的 target_claim_id 必须指向本文件中已列的具体主张；null 表示该条独立提出",
+    "inference": "下列 insight 是为演示预写的分析理解，未经真实 AI 生成或客户确认",
+    "voice_delivery": "没有音频，语气、情绪与人格一律不标注"
+  },
+  "insights": [
+    {
+      "id": "ins_brand_professionalism",
+      "title": "品牌官网的专业感来自克制与可核查依据",
+      "origin": "editorial_demo_inference",
+      "v1_after_M1": {
+        "understanding": "在这次品牌官网首页讨论中，‘大气’逐渐被限定为克制、业务清楚、能找到真实项目依据；宣传标语可保留，但不能压过依据。",
+        "scope": "澄川智造品牌官网首页；不是该客户对所有页面的永久审美偏好",
+        "forming_claim_ids": ["c001", "c003", "c006", "c007", "c011", "c014", "c015", "c018", "c019", "c020", "c021", "c023"],
+        "open_questions": ["哪些项目图文具有明确公开权限？", "访客是否能从首页找到相关且适用的案例？"],
+        "approval_status": "未见页面发布批准"
+      },
+      "v2_after_M2": {
+        "understanding": "品牌官网首页仍偏好克制而有依据；展会专题可更鲜明热烈。两个场景都要求信息来源和适用条件可查。",
+        "change_type": "qualified_by_context",
+        "new_claim_ids": ["c025", "c026", "c027", "c028", "c029", "c030", "c034", "c035", "c036", "c037"],
+        "history_note": "M2 限定的是对 M1 的过度概括，不宣称 M1 曾断言所有页面必须克制；M1 的限定原话仍保留。",
+        "approval_status": "未见页面发布批准"
+      },
+      "importance_basis": "M1 有多轮追问、具体例子、反例和条件认同；M2 给出页面场景限定并重复强调可信依据。仅作阅读优先级说明，不把出现频次算成共识或已校准分数。"
+    },
+    {
+      "id": "ins_case_context",
+      "title": "案例要交代现场条件与可公开依据",
+      "origin": "editorial_demo_inference",
+      "v1_after_M1": {
+        "understanding": "案例不能只列 Logo 或结果数字，应交代背景、现场条件、做法和可公开的依据。",
+        "forming_claim_ids": ["c007", "c009", "c016", "c017", "c018"],
+        "open_questions": ["实际可公开的案例素材有哪些？"]
+      },
+      "v2_after_M2": {
+        "understanding": "展会专题也需交代资料来源和适用条件；本次是原有理解的补证，没有独立的新突破。",
+        "change_type": "supported_without_new_breakthrough",
+        "new_claim_ids": ["c029", "c030", "c034", "c036"]
+      }
+    },
+    {
+      "id": "clue_exhibition_paths",
+      "title": "专题页可能需要区分现场交流与资料获取",
+      "origin": "editorial_demo_inference",
+      "status": "待验证线索，不强行标为新洞察",
+      "claim_ids": ["c033"],
+      "gap": "只有一次提出，未有访客行为或完整评审依据"
+    }
+  ],
+  "annotations": [
+    {"claim_id": "c001", "meeting_id": "M1", "paragraph_id": "P002", "quote": "我们希望第一眼大气一点", "content_type": "观点", "relation": null, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c002", "meeting_id": "M1", "paragraph_id": "P003", "quote": "您说的“大气”可能指留白、图片尺度、信息数量，也可能是对公司的信任感。", "content_type": "观点", "relation": {"type": "追问", "target_claim_id": "c001"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c003", "meeting_id": "M1", "paragraph_id": "P004", "quote": "看起来像促销海报。", "content_type": "观点", "relation": {"type": "澄清", "target_claim_id": "c001"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c004", "meeting_id": "M1", "paragraph_id": "P007", "quote": "至少在官网某处要保留。", "content_type": "观点", "relation": {"type": "补充", "target_claim_id": "c003"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c005", "meeting_id": "M1", "paragraph_id": "P008", "quote": "不是说品牌一句话都不能讲。", "content_type": "观点", "relation": {"type": "澄清", "target_claim_id": "c003"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c006", "meeting_id": "M1", "paragraph_id": "P010", "quote": "如果只是素材网站上的工厂照片，即使留白很多，我还是觉得不可信。", "content_type": "条件", "relation": {"type": "反例", "target_claim_id": "c001"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c007", "meeting_id": "M1", "paragraph_id": "P013", "quote": "采购的人会问，你们到底做过什么、证据在哪里。", "content_type": "观点", "relation": {"type": "补充", "target_claim_id": "c001"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c008", "meeting_id": "M1", "paragraph_id": "P014", "quote": "是案例数量、项目现场、性能数据，还是客户能核实的实施过程？", "content_type": "观点", "relation": {"type": "追问", "target_claim_id": "c007"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c009", "meeting_id": "M1", "paragraph_id": "P015", "quote": "性能数字如果没有测试口径，放在首页反而可能惹争议。", "content_type": "条件", "relation": {"type": "回应", "target_claim_id": "c008"}, "insight_id": "ins_case_context"},
+    {"claim_id": "c010", "meeting_id": "M1", "paragraph_id": "P020", "quote": "大面积深色背景、抽象粒子图、超大的“大气”标题", "content_type": "案例", "relation": {"type": "回应", "target_claim_id": "c001"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c011", "meeting_id": "M1", "paragraph_id": "P021", "quote": "视觉上挺有气势，但看不出这是我们的公司。", "content_type": "观点", "relation": {"type": "质疑", "target_claim_id": "c010"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c012", "meeting_id": "M1", "paragraph_id": "P023", "quote": "留白比现页多，但不靠大字和光效撑气势。", "content_type": "案例", "relation": {"type": "回应", "target_claim_id": "c011"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c013", "meeting_id": "M1", "paragraph_id": "P024", "quote": "B 的方向更接近，不过这张合成图只能用于讨论。", "content_type": "条件", "relation": {"type": "条件认同", "target_claim_id": "c012"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c014", "meeting_id": "M1", "paragraph_id": "P028", "quote": "信息克制，同时让访客看到可以核查的项目依据", "content_type": "观点", "relation": {"type": "澄清", "target_claim_id": "c001"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c015", "meeting_id": "M1", "paragraph_id": "P029", "quote": "不能克制到业务范围都看不懂。", "content_type": "条件", "relation": {"type": "条件认同", "target_claim_id": "c014"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c016", "meeting_id": "M1", "paragraph_id": "P036", "quote": "每个案例至少需要项目背景、现场条件、做法和可公开的结果。", "content_type": "观点", "relation": {"type": "补充", "target_claim_id": "c007"}, "insight_id": "ins_case_context"},
+    {"claim_id": "c017", "meeting_id": "M1", "paragraph_id": "P039", "quote": "最好明示场景条件。", "content_type": "条件", "relation": {"type": "补充", "target_claim_id": "c016"}, "insight_id": "ins_case_context"},
+    {"claim_id": "c018", "meeting_id": "M1", "paragraph_id": "P055", "quote": "可信依据需要来源和公开权限。", "content_type": "条件", "relation": {"type": "补充", "target_claim_id": "c014"}, "insight_id": "ins_case_context"},
+    {"claim_id": "c019", "meeting_id": "M1", "paragraph_id": "P063", "quote": "您要的“大气”更接近克制而清楚的专业感；项目依据能核查，业务范围看得懂。", "content_type": "观点", "relation": {"type": "澄清", "target_claim_id": "c014"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c020", "meeting_id": "M1", "paragraph_id": "P064", "quote": "我认可这句作为当前设计理解。", "content_type": "观点", "relation": {"type": "明确认同", "target_claim_id": "c019"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c021", "meeting_id": "M1", "paragraph_id": "P064", "quote": "宣传标语不是不能用，只是不能压过业务说明和案例依据。", "content_type": "条件", "relation": {"type": "补充", "target_claim_id": "c020"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c022", "meeting_id": "M1", "paragraph_id": "P067", "quote": "今天可以形成设计理解，但不能写成客户已经批准上线。", "content_type": "条件", "relation": {"type": "澄清", "target_claim_id": "c020"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c023", "meeting_id": "M1", "paragraph_id": "P071", "quote": "如果新版只是删掉一半文字，页面很空，却让采购仍找不到同类项目，那不是我说的“大气”", "content_type": "条件", "relation": {"type": "反例", "target_claim_id": "c019"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c024", "meeting_id": "M1", "paragraph_id": "P075", "quote": "今天讨论的是我们希望传达的评价标准，不是说新设计一定会达到它。", "content_type": "观点", "relation": {"type": "澄清", "target_claim_id": "c020"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c025", "meeting_id": "M2", "paragraph_id": "Q002", "quote": "如果它和官网首页一样安静，活动信息会被淹没。", "content_type": "条件", "relation": {"type": "反例", "target_claim_id": "c019"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c026", "meeting_id": "M2", "paragraph_id": "Q003", "quote": "上次我反对的是官网首页像促销海报，不是说所有页面都必须低饱和、少颜色。", "content_type": "观点", "relation": {"type": "澄清", "target_claim_id": "c003"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c027", "meeting_id": "M2", "paragraph_id": "Q005", "quote": "可以有更明亮的主题色和更大的展会标题。", "content_type": "条件", "relation": {"type": "补充", "target_claim_id": "c026"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c028", "meeting_id": "M2", "paragraph_id": "Q006", "quote": "展会的热烈表达也不能靠无法核实的结论。", "content_type": "条件", "relation": {"type": "补充", "target_claim_id": "c027"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c029", "meeting_id": "M2", "paragraph_id": "Q008", "quote": "即使是展会页，照片也要说明是我们自己的现场", "content_type": "条件", "relation": {"type": "补充", "target_claim_id": "c018"}, "insight_id": "ins_case_context"},
+    {"claim_id": "c030", "meeting_id": "M2", "paragraph_id": "Q009", "quote": "有些是上一届拍的。页面若标成今年现场就会误导", "content_type": "事实陈述", "relation": {"type": "补充", "target_claim_id": "c029"}, "insight_id": "ins_case_context"},
+    {"claim_id": "c031", "meeting_id": "M2", "paragraph_id": "Q012", "quote": "B 用亮一些的主题色，把展会时间、展位和演示内容放到前面。", "content_type": "案例", "relation": {"type": "回应", "target_claim_id": "c027"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c032", "meeting_id": "M2", "paragraph_id": "Q013", "quote": "B 更像活动页，我愿意让访客先看到这三个信息", "content_type": "观点", "relation": {"type": "条件认同", "target_claim_id": "c031"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c033", "meeting_id": "M2", "paragraph_id": "Q017", "quote": "两个入口可以并列", "content_type": "观点", "relation": null, "insight_id": "clue_exhibition_paths"},
+    {"claim_id": "c034", "meeting_id": "M2", "paragraph_id": "Q022", "quote": "来源和适用条件仍要可查。", "content_type": "条件", "relation": {"type": "补充", "target_claim_id": "c018"}, "insight_id": "ins_case_context"},
+    {"claim_id": "c035", "meeting_id": "M2", "paragraph_id": "Q023", "quote": "应该说“品牌官网首页偏好克制；展会专题可以更鲜明”。", "content_type": "条件", "relation": {"type": "修正", "target_claim_id": "c019"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c036", "meeting_id": "M2", "paragraph_id": "Q025", "quote": "展会页可以热闹，但最显眼的仍应是真实的展会信息", "content_type": "条件", "relation": {"type": "条件认同", "target_claim_id": "c035"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c037", "meeting_id": "M2", "paragraph_id": "Q026", "quote": "如果最后没有获准使用的现场资料，即使 B 的布局漂亮，也不能拿旧照片冒充这次展会。", "content_type": "条件", "relation": {"type": "反例", "target_claim_id": "c029"}, "insight_id": "ins_brand_professionalism"},
+    {"claim_id": "c038", "meeting_id": "M2", "paragraph_id": "Q027", "quote": "页面是否发布、什么时候发布，不在这次讨论的结论里。", "content_type": "条件", "relation": {"type": "澄清", "target_claim_id": "c035"}, "insight_id": "ins_brand_professionalism"}
+  ]
+}
