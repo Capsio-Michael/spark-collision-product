@@ -583,7 +583,7 @@ InsightDetail 的 `evidence[].meeting_id` 及 `annotations[]` 均为可选扩展
 
 ## 13. 可选 Kimi 引文分析联调（独立于项目快照）
 
-启用方法见 [本机配置](kimi-local-setup.md)。密钥只保存在后端进程环境，浏览器不传 API Key。`GET /health` 增加 `chat_provider: kimi|none`、`chat_model: string|null`、`agent_analysis_format: json_object|null` 和 `agent_analysis_mode: kimi|unavailable`；这些字段说明服务配置，不能替代一次真实生成验证。标准 Kimi 启动会先查询官方 `/models` 并核对所选模型，失败则拒绝启动。`engine_mode` 仍为 `mock`，对应旧 `/analyses` 和项目总览，不能据此否认或冒充独立 Kimi 调用。
+启用方法见 [本机配置](kimi-local-setup.md)。密钥只保存在后端进程环境，浏览器不传 API Key。`GET /health` 增加 `chat_provider: kimi|none`、`chat_model: string|null`、`agent_analysis_format: json_object|null`、`agent_prompt_version: string|null` 和 `agent_analysis_mode: kimi|unavailable`；这些字段说明服务配置，不能替代一次真实生成验证。标准 Kimi 启动会先查询官方 `/models` 并核对所选模型，失败则拒绝启动。`engine_mode` 仍为 `mock`，对应旧 `/analyses` 和项目总览，不能据此否认或冒充独立 Kimi 调用。
 
 | 接口 | 请求和返回 |
 | --- | --- |

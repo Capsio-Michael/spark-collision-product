@@ -3,7 +3,8 @@ param(
     [ValidateRange(1024, 65535)][int]$Port = 8000,
     [string]$Model = 'kimi-k2.6',
     [string]$Database = 'var/kimi-live.db',
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [switch]$Reload
 )
 
 $ErrorActionPreference = 'Stop'
@@ -57,7 +58,9 @@ try {
     $env:SPARK_KIMI_MODEL = $Model
     [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($keyPointer)
     $keyPointer = [IntPtr]::Zero
-    & $pythonPath -X utf8 -m engine.server --port $Port --db $Database
+    $serverModule = if ($Reload) { 'engine.dev_server' } else { 'engine.server' }
+    if ($Reload) { Write-Host 'Local reload is enabled. Engine code edits restart the service without entering the key again.' }
+    & $pythonPath -X utf8 -m $serverModule --port $Port --db $Database
     if ($LASTEXITCODE -ne 0) { throw "Engine exited with code $LASTEXITCODE." }
 } finally {
     foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $previous[$name], 'Process') }

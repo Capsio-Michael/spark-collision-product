@@ -94,6 +94,7 @@ class KimiAgentTests(unittest.TestCase):
         result = self.app.call("POST", self.base + "/agent-analysis", body={"record_id": second["id"], "allow_external_processing": False}, key="second")[1]
         self.assertEqual(result["result"]["counts"], {"new": 0, "supplemented": 1, "revised": 0})
         self.assertEqual(json.loads(self.provider.calls[1][-1]["content"])["previous_verified_results"][0]["changes"][0]["title"], "报价确认边界")
+        self.assertEqual(json.loads(self.provider.calls[1][-1]["content"])["known_focus_titles"], ["报价确认边界"])
 
     def test_provider_failure_and_empty_outcome(self):
         record = self.imported()

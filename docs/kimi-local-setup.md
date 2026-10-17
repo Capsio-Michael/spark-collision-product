@@ -23,6 +23,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-kimi-local.ps1
 
 脚本优先选择本机 Codex 附带的 Python，再查找系统 Python，跳过 WindowsApps 安装别名，并在询问 Key 前验证 Python 3.10+、SQLite 和端口。可追加 `-CheckOnly` 单独检查运行环境，不询问 Key，也不启动服务。旧版出现退出码 `9009` 时更新脚本后重试；启动失败会清除本次进程中的临时 Key，下次需要重新在隐藏提示中输入。
 
+持续联调可加 `-Reload`：`powershell -ExecutionPolicy Bypass -File .\scripts\start-kimi-local.ps1 -Reload`。父进程保留本次内存配置，检测 `engine/*.py` 变动后重启本机子服务，继续使用同一数据库，不再次询问 Key；退出窗口后仍不保存 Key。修改时应等待当前生成请求结束。此模式已用独立测试库验证真实 HTTP 启动、修改代码后重启及项目持久化，仅用于本机开发。
+
 前端可在另一终端运行：
 
 ```powershell
@@ -48,3 +50,5 @@ python3 -m engine.server --port 8000 --db var/spark.db
 2026-10-17 首次真实调用返回 HTTP 404，未保存分析结果。核对[官方模型列表](https://platform.kimi.com/docs/models)后确认此前选择的 `kimi-k2.5` 已于 2026-08-31 下线，已改用 `kimi-k2.6`，待重启后再验证真实生成。启动会先用同一个后端进程中的 Key 请求官方 `/models`，确认配置模型在当前列表中；这一步不进行文本生成。检查失败则拒绝启动，不回退为模拟成功。模型输出质量、费用与跨场归纳仍需真实验收。
 
 K2.6 首次真实返回未通过 JSON 解析，分析请求现显式设置 `response_format: {"type":"json_object"}`，而自由对话流保持文本格式。参考[官方 JSON Mode](https://platform.kimi.com/docs/guide/use-json-mode-feature-of-kimi-api)。API 负责输出合法 JSON，应用继续独立检查字段、类型、新旧关注点和逐字引文；不会从解释文字中猜取一个对象，或跳过证据核验。
+
+启用 JSON Mode 后，首份合成记录已真实返回并保存 `no_new_insight`；第二份记录的返回因“新旧关注点关系不一致”被拒绝保存。已在提示词中明确 `known_focus_titles` 为全部已存标题：新标题只可标 new，已有标题才能标支持、细化、修正或质疑；摘要提到过不等于已有关注点。此调整待新服务加载后验证正向卡片与原话路径。

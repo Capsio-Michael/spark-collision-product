@@ -4,7 +4,7 @@ import { getDesignSnapshot } from './design-review-model.js';
 import { CHANGE_LABELS } from './insight-detail-model.js';
 
 function renderKimiAnswer(result, connected) {
-  return `<div class="conversation-answer"><div class="answer-heading"><span>${icon('spark')}Kimi 引文分析</span></div><h2>${result.outcome === 'updated' ? '这些发现，值得进一步核查' : result.outcome === 'no_new_insight' ? '本次没有新火花' : '证据还不够，请补充材料'}</h2><p class="answer-note">${e(result.summary)}</p><p class="answer-note">以下是模型推断，引文已由服务端逐字核对，判断仍需人工确认。此结果单独保存，尚未进入项目历史与导出。${!connected ? ' 当前为缓存，请恢复连接后核查原文。' : ''}</p><div class="conversation-cards">${result.cards.map(card => `<button class="conversation-card" data-kimi-card="${e(card.key)}"><span>${e(CHANGE_LABELS[card.type] || '待核查发现')}${icon('arrow')}</span><h3>${e(card.title)}</h3><p>${e(card.judgment)}</p><small>查看判断依据与原话</small></button>`).join('')}</div></div>`;
+  return `<div class="conversation-answer"><div class="answer-heading"><span>${icon('spark')}Kimi 引文分析</span></div><h2>${result.outcome === 'updated' ? '这些发现，值得进一步核查' : result.outcome === 'no_new_insight' ? '本次没有新火花' : '证据还不够，请补充材料'}</h2><p class="answer-note">${e(result.summary)}</p><p class="answer-note">${result.cards.length ? '以下是模型推断，引文已由服务端逐字核对，判断仍需人工确认。' : '本次没有返回可定位的引文，摘要仅供参考，需要人工核查。'}此结果单独保存，尚未进入项目历史与导出。${!connected ? ' 当前为缓存，请恢复连接后核查原文。' : ''}</p><div class="conversation-cards">${result.cards.map(card => `<button class="conversation-card" data-kimi-card="${e(card.key)}"><span>${e(CHANGE_LABELS[card.type] || '待核查发现')}${icon('arrow')}</span><h3>${e(card.title)}</h3><p>${e(card.judgment)}</p><small>查看判断依据与原话</small></button>`).join('')}</div></div>`;
 }
 
 export function renderKimiDetail(card) {

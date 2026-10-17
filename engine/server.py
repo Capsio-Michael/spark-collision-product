@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from uuid import uuid4
 
 from .analysis import DIMENSIONS, build_analysis
-from .agent_analysis import AnalysisError, messages_for, validate_analysis
+from .agent_analysis import PROMPT_VERSION, AnalysisError, messages_for, validate_analysis
 from .kimi import KimiProvider, ProviderError
 
 SHANGHAI = timezone(timedelta(hours=8))
@@ -256,7 +256,7 @@ class App:
         query = query or {}
         state = self.store.read()
         if method == "GET" and path == "/health":
-            return 200, {"status": "ok", "api_version": "0.1", "engine_mode": "mock", "model_configured": bool(self.chat_provider), "chat_provider": "kimi" if self.chat_provider else "none", "chat_model": self.chat_provider.model if self.chat_provider else None, "agent_analysis_format": "json_object" if self.chat_provider else None, "agent_analysis_mode": "kimi" if self.chat_provider else "unavailable"}, {}
+            return 200, {"status": "ok", "api_version": "0.1", "engine_mode": "mock", "model_configured": bool(self.chat_provider), "chat_provider": "kimi" if self.chat_provider else "none", "chat_model": self.chat_provider.model if self.chat_provider else None, "agent_analysis_format": "json_object" if self.chat_provider else None, "agent_prompt_version": PROMPT_VERSION if self.chat_provider else None, "agent_analysis_mode": "kimi" if self.chat_provider else "unavailable"}, {}
         if method == "GET" and path == "/projects":
             return 200, {"items": [state["project"]] if state["project"] else []}, {}
         if method == "POST" and path == "/projects":
