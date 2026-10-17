@@ -8,7 +8,7 @@ export function frogPreferences(storage) {
 }
 
 // A displayed snapshot, a busy request and an observed analysis job are different signals.
-export function frogPresentation({ workspace, connected, activeJob, lastJob, overview, error, hasMaterials, engineMode, projectId }) {
+export function frogPresentation({ workspace, connected, activeJob, lastJob, overview, error, hasMaterials, engineMode, projectId, agentResult, agentAnalyzing }) {
   const mode = engineMode === 'mock' ? '模拟服务 · ' : '';
   const present = (state, label, animate = false) => ({ state, label, animate });
   if (workspace !== 'own') return present('reading', '预置内容 · 非实时分析');
@@ -19,6 +19,8 @@ export function frogPresentation({ workspace, connected, activeJob, lastJob, ove
     if (activeJob.status === 'failed') return present('reading', `${mode}分析失败 · 可重试`);
     return present('reading', `${mode}任务状态待核查`);
   }
+  if (agentAnalyzing) return present('reading', 'Kimi 正在分析材料');
+  if (agentResult) return present('complete', agentResult.outcome === 'no_new_insight' ? 'Kimi 已完成 · 无新火花' : 'Kimi 结果已读取 · 待核查');
   if (lastJob?.status === 'failed') return present('reading', `${mode}分析失败 · 可重试`);
   if (lastJob?.status === 'succeeded' && Number.isSafeInteger(lastJob.result_version) && lastJob.result_version > 0
     && lastJob.result_version === overview?.snapshot_version && lastJob.project_id === projectId

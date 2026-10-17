@@ -4,6 +4,14 @@ import { frogPresentation, frogPreferences } from '../src/frog-model.js';
 const context = { workspace: 'own', connected: true, engineMode: 'mock', projectId: 'p1', hasMaterials: true };
 const success = { ...context, lastJob: { status: 'succeeded', project_id: 'p1', result_version: 2 }, overview: { project: { id: 'p1' }, snapshot_version: 2, outcome: 'updated', changes: [{ is_breakthrough: true }] } };
 
+test('independent Kimi results show completion without a fabricated project job or breakthrough', () => {
+  const model = frogPresentation({ ...context, agentResult: { outcome: 'updated' } });
+  assert.equal(model.state, 'complete'); assert.match(model.label, /Kimi 结果已读取/); assert.equal(model.animate, false);
+  assert.doesNotMatch(model.label, /模拟服务/);
+  assert.equal(frogPresentation({ ...context, agentAnalyzing: true }).state, 'reading');
+  assert.equal(frogPresentation({ ...context, connected: false, agentResult: {} }).state, 'reading');
+});
+
 test('preset examples never claim a job is running or completed', () => {
   for (const workspace of ['design', 'demo']) {
     const model = frogPresentation({ ...success, workspace, activeJob: { status: 'running' } });

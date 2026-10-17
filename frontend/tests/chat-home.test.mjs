@@ -88,3 +88,55 @@ test('authorization is still mandatory and an existing uncertain request prevent
   chat.authorization = '提供者允许本次分析'; workflow.state.pending.import = { key: 'prior' };
   await chat.send(workflow); assert.match(chat.error, /恢复原任务/); assert.deepEqual(calls, []);
 });
+
+function kimiSetup() {
+  const setupValue = setup(), { workflow, calls } = setupValue;
+  workflow.state.base_url = 'http://127.0.0.1:8000/api/v1'; workflow.state.project = { id: 'kimi-project' };
+  workflow.health.agent_analysis_mode = 'kimi';
+  const saved = [], keys = [];
+  workflow.api = {
+    async agentAnalyses() { return { items: [...saved] }; },
+    async agentAnalysis(projectId, id, consent, key) {
+      keys.push(key); calls.push('kimi');
+      const item = { id: `analysis-${id}`, record_id: id, model: 'kimi-k2.5', result: { summary: '报价边界待核实', outcome: 'updated', changes: [{ title: '报价边界', type: 'new', reason: '条件不同', judgment: '模型推断', evidence: [{ record_id: id, segment_id: 'segment', quote: '需要核实的原话', meeting_id: 'M1' }] }] } };
+      saved.push(item); return item;
+    },
+  };
+  return { ...setupValue, saved, keys };
+}
+
+test('Kimi homepage uses independent analysis with clickable evidence, never mock snapshot or export', async () => {
+  const { storage, workflow, calls } = kimiSetup(); let chat = new ChatComposer(storage);
+  chat.text = '需要核实的原话'; chat.basis = 'synthetic'; await chat.send(workflow);
+  assert.equal(chat.error, ''); assert.ok(calls.includes('kimi')); assert.ok(!calls.includes('analyze'));
+  assert.equal(workflow.state.active_job, null); assert.equal(chat.result(workflow), null);
+  assert.equal(chat.agentResult(workflow).cards.length, 1);
+  const html = renderChatHome(chat, workflow);
+  assert.match(html, /Kimi 引文分析/); assert.match(html, /data-kimi-card=/);
+  assert.doesNotMatch(html, /data-action="export"|data-live-insight=|等待分析结果。/);
+  chat = new ChatComposer(storage); assert.equal(chat.agentResult(workflow).cards.length, 1);
+  await chat.send(workflow, true); assert.equal(calls.filter(call => call === 'kimi').length, 1);
+  workflow.state.base_url = 'http://127.0.0.1:8001/api/v1'; assert.equal(chat.agentResult(workflow), null);
+});
+
+test('uncertain Kimi request reuses its key and partial multi-file results are recovered without another paid call', async () => {
+  const { storage, workflow, keys } = kimiSetup(), chat = new ChatComposer(storage);
+  await chat.addFiles([file('第一场.md'), file('第二场.md')]); chat.basis = 'synthetic';
+  const original = workflow.api.agentAnalysis; let fail = true; const attempts = [];
+  workflow.api.agentAnalysis = async (...args) => {
+    attempts.push(args[3]);
+    if (keys.length === 1 && fail) { fail = false; throw Error('网络中断'); }
+    return original(...args);
+  };
+  await chat.send(workflow); assert.match(chat.error, /网络中断/); assert.equal(chat.agentResult(workflow), null);
+  const restored = new ChatComposer(storage); await restored.send(workflow, true);
+  assert.equal(restored.error, ''); assert.equal(keys.length, 2);
+  assert.equal(attempts[1], attempts[2]); assert.equal(restored.agentResult(workflow).items.length, 2);
+});
+
+test('a Kimi batch cannot silently fall back to mock when provider configuration disappears', async () => {
+  const { storage, workflow, calls } = kimiSetup(), chat = new ChatComposer(storage);
+  chat.text = '合成记录'; chat.basis = 'synthetic'; await chat.send(workflow);
+  workflow.health.agent_analysis_mode = 'unavailable'; await chat.send(workflow, true);
+  assert.match(chat.error, /恢复 Kimi/); assert.ok(!calls.includes('analyze'));
+});

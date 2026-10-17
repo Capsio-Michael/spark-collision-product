@@ -21,7 +21,7 @@ import { getDesignSnapshot, designMarkdown } from './design-review-model.js';
 import { renderDesignOverview, renderDesignMaterials, renderDesignHistory, openDesignInsight } from './design-review-view.js';
 import { createFrogAssistant } from './frog-assistant.js';
 import { ChatComposer } from './chat-home-model.js';
-import { renderChatHome } from './chat-home-view.js';
+import { renderChatHome, renderKimiDetail } from './chat-home-view.js';
 
 let storage;
 try { storage = window.localStorage; } catch { storage = { getItem() { throw new Error('Storage unavailable'); }, setItem() { throw new Error('Storage unavailable'); } }; }
@@ -38,7 +38,7 @@ const state = {
 const chat = new ChatComposer(storage, { onChange: () => shell() });
 const app = document.querySelector('#app');
 const overlay = document.querySelector('#overlay-root');
-const assistant = createFrogAssistant({ storage, getContext: () => ({ workspace: state.view === 'chat' ? (chat.exampleVersion ? 'design' : 'own') : state.workspace, connected: workflow.connected, activeJob: workflow.state.active_job, lastJob: workflow.state.last_job, overview: workflow.state.overview, error: workflow.error, hasMaterials: materialRows(workflow).length > 0, engineMode: workflow.health?.engine_mode || workflow.state.overview?.engine_mode, projectId: workflow.state.project?.id }) });
+const assistant = createFrogAssistant({ storage, getContext: () => ({ workspace: state.view === 'chat' ? (chat.exampleVersion ? 'design' : 'own') : state.workspace, connected: workflow.connected, activeJob: workflow.state.active_job, lastJob: workflow.state.last_job, overview: workflow.state.overview, error: chat.error || workflow.error, agentResult: state.view === 'chat' ? chat.agentResult(workflow) : null, agentAnalyzing: state.view === 'chat' && chat.busy && chat.agentContext === chat.context(workflow), hasMaterials: materialRows(workflow).length > 0, engineMode: workflow.health?.engine_mode || workflow.state.overview?.engine_mode, projectId: workflow.state.project?.id }) });
 const historyView = createHistoryView({
   getContext: () => ({ workspace: state.workspace, projectId: state.workspace === 'demo' ? 'prj_demo' : workflow.state.project?.id, baseUrl: state.workspace === 'demo' ? 'synthetic' : workflow.state.base_url, connected: state.workspace === 'demo' || workflow.connected, api: workflow.api }),
   onOpenDetail: options => { closeDialog(); openInsightDetail({ ...options, readOnly: true }); },
@@ -137,6 +137,7 @@ function renderChatShell() {
   form.querySelector('#conversation-text').addEventListener('input', event => { chat.text = event.target.value; chat.persist(); });
   form.querySelector('#conversation-basis').addEventListener('change', event => { chat.basis = event.target.value; chat.persist(); shell(); });
   form.querySelector('#conversation-authorization')?.addEventListener('input', event => { chat.authorization = event.target.value; chat.persist(); });
+  app.querySelector('#conversation-external')?.addEventListener('change', event => { chat.externalConsent = event.target.checked; });
 }
 
 function renderDesignShell() {
@@ -287,7 +288,7 @@ function openConnection() {
     button.disabled = true; button.textContent = '正在检查连接…'; message.hidden = true;
     try {
       await workflow.connect(dialog.querySelector('#engine-address').value);
-      closeDialog(); notify(`引擎连接成功${workflow.health.engine_mode === 'mock' ? '（模拟服务）' : ''}，材料尚未自动上传。`);
+      closeDialog(); notify(`引擎连接成功${workflow.health.agent_analysis_mode === 'kimi' ? '（Kimi 已配置，尚需验证调用）' : workflow.health.engine_mode === 'mock' ? '（模拟服务）' : ''}，材料尚未自动上传。`);
       schedulePolling(0);
     } catch (error) { message.textContent = error.message; message.hidden = false; }
     finally { button.disabled = false; button.textContent = '检查并连接'; }
@@ -360,6 +361,16 @@ document.addEventListener('click', event => {
   if (element.hasAttribute('data-chat-restore-run')) { chat.restoreRun(); return; }
   if (element.hasAttribute('data-chat-resume')) { chat.send(workflow, true).then(() => schedulePolling(0)); return; }
   if (element.hasAttribute('data-chat-existing')) { state.view = 'overview'; state.workspace = 'own'; location.hash = 'results'; shell(); return; }
+  if (element.dataset.kimiCard) {
+    const card = chat.agentResult(workflow)?.cards.find(item => item.key === element.dataset.kimiCard);
+    if (!card) return;
+    const dialog = openDialog(`${dialogHeader('KIMI · 引文分析', card.title)}${renderKimiDetail(card)}`, 'drawer');
+    dialog.querySelectorAll('[data-kimi-evidence]').forEach(button => button.addEventListener('click', () => {
+      const evidence = card.evidence[Number(button.dataset.kimiEvidence)];
+      if (evidence) openServerRecord(evidence.record_id, evidence);
+    }));
+    return;
+  }
   if (element.dataset.designVersion && state.workspace === 'design') {
     const version = Number(element.dataset.designVersion); if (![1, 2].includes(version)) return;
     closeDialog(); state.designVersion = version; shell();

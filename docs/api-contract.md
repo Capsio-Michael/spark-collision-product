@@ -580,3 +580,19 @@ InsightDetail 的 `evidence[].meeting_id` 及 `annotations[]` 均为可选扩展
 “重复印证”仅取有效 spark 路径中的 corroboration 事件，并且该贡献引用和场次必须对应；不从 supports、认可措辞或相同引用数量推导成认知突破。M2 的标注条件为“跨区报价”，M3 两条分别为“无折扣目录价”和“跨区或特殊折扣”；M4 认可不变成上线批准。
 
 当前示例、用户项目详情及只读历史详情共用此展示；示例 Markdown 保留分组标注和截至该版的引用。当前导入表单已支持显式填写并提交 meeting_id，模拟服务同场多文件导入仍有限制；前端能够展示同组证据不表示导入和服务端能力已实现或验收。
+
+## 13. 可选 Kimi 引文分析联调（独立于项目快照）
+
+启用方法见 [本机配置](kimi-local-setup.md)。密钥只保存在后端进程环境，浏览器不传 API Key。`GET /health` 增加 `chat_provider: kimi|none` 和 `agent_analysis_mode: kimi|unavailable`；这只表示配置已读取。`engine_mode` 仍为 `mock`，对应旧 `/analyses` 和项目总览，不能据此否认或冒充独立 Kimi 调用。
+
+| 接口 | 请求和返回 |
+| --- | --- |
+| `POST /projects/{id}/agent-analysis` | 必须有 `Idempotency-Key`；JSON 为 `{record_id: string, allow_external_processing: boolean}`。单次添加一份已导入材料，以此前已分析材料为上下文；批量导入后前端逐份调用。成功为 201。 |
+| `GET /projects/{id}/agent-analyses` | 返回 `{items: [...]}`，用于恢复已完成的独立结果，不会触发模型调用。 |
+| `POST /chat/stream` | JSON 为 `{messages: [{role: "user"|"assistant", content: string}]}`，最多 12 条、总计 12,000 字符，最后一条为 user。不接受客户端 system 消息。返回 SSE `delta {text}`、`done {characters}`，失败为 `error {code,message}`；缺少完成事件不算成功。当前浅色首页的生成按钮不调用此接口。 |
+
+分析成功项包含 `id, record_id, created_at, provider, model, result`。`result` 包含 `summary, outcome, changes, counts`；`outcome` 为 `updated|no_new_insight|insufficient_evidence`。每条 change 含 `title, type, reason, judgment, evidence`；type 为 `new|supported|qualified|revised|challenged`。每条 evidence 含 `record_id, segment_id, quote, meeting_id`，服务端逐字核验且每条变化必须引用本轮新材料。`counts` 由服务端计算，不采用模型给出的数量。
+
+服务未配置为 503；本轮或历史上下文含获授权材料而未确认外部处理为 422 `EXTERNAL_PROCESSING_NOT_APPROVED`；同一材料已分析但用不同请求标识再调用为 409 `RECORD_ALREADY_ANALYZED`；上下文累计超过 16,000 字符为 413 `ANALYSIS_CONTEXT_LIMIT`。上游调用或结果校验失败为 502，不保存无效结果。前端独立分析等待上限 45 秒，其他普通请求仍为 15 秒；超时后先 GET 恢复已保存结果，未完成请求复用原幂等标识。
+
+Kimi 引文分析是待人工核实的模型推断；引文逐字匹配仅证明引用存在。它不具备完整 A/B/C/D/V 碰撞卡字段，不进入旧的六维总览、项目版本历史、纠错和 Markdown 导出，不能把这些旧页面的模拟结果宣称为真实模型生成。
