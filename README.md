@@ -14,10 +14,16 @@
 
 - [产品定义](docs/product-definition.md)：对象、证据与判断规则、输出结构。
 - [MVP 范围与验收](docs/mvp-acceptance.md)：今天做什么、怎样证明完成。
-- [协作分工与任务池](docs/collaboration.md)：按职责认领，工作室身份与正式分工待确认。
+- [协作分工与任务池](docs/collaboration.md)：用户提议负责后端引擎与服务，同事负责交互与用户体验；其余职责待认领。
 - [决策记录](docs/decisions.md)：已确定的边界与待裁定事项。
 - [五小时计划](docs/hackathon-plan.md)：开发、验收和展示节奏。
 
 ## 工作约定
 
 每个结果都能追到输入片段；材料中的事实、他人观点、AI 推断和已批准行动分开存放与显示。未提到某话题不等于不感兴趣，没有依据就可以没有新火花。所有任务须先在协作文档认领，今天优先完成可演示的纵向闭环。
+
+## 给开发同事的共享方式
+
+工作目录上一级可生成两种本地文件：`spark-collision-product-docs.zip` 适合直接阅读这六份文档；`spark-collision-product.bundle` 适合继续 Git 协作，包含 `main` 和 `work/product-definition` 及提交历史。通过你信任的文件传输方式把所需文件交给同事即可；仓库没有远程地址。
+
+同事收到 bundle 后，可在自己的电脑执行 `git clone spark-collision-product.bundle spark-collision-product`，再进入目录执行 `git switch work/product-definition`。共同确认分工和最小接口后，再从该分支创建各自的开发分支。ZIP 仅供阅读，不含 Git 历史。两种文件均只包含本仓库的定义文档，不含客户材料。
