@@ -1,6 +1,6 @@
 # 智慧火花碰撞 · 产品定义工作区
 
-状态：**定义阶段**。这里是独立的本地 Git 仓库，尚无可运行产品；文档中的能力、界面和验收项均为今天 Hackathon 的目标或建议，不代表已经实现。
+状态：**定义阶段，附可运行的本机模拟引擎**。`work/engine-service` 已提供合成案例的确定性 mock API；它不调用模型，也不代表通用分析能力已经实现。其余文档中的能力和验收项仍为目标或建议。
 
 ## 一句话
 
@@ -17,6 +17,24 @@
 - [协作分工与任务池](docs/collaboration.md)：用户提议负责后端引擎与服务，同事负责交互与用户体验；其余职责待认领。
 - [决策记录](docs/decisions.md)：已确定的边界与待裁定事项。
 - [五小时计划](docs/hackathon-plan.md)：开发、验收和展示节奏。
+- [冻结案例与最小联调接口](docs/demo-case-and-contract.md)：M1–M4 合成材料、预期版本和前后端交接点。
+
+## 本机 mock 服务
+
+在 `work/engine-service` 分支的仓库根目录运行：
+
+```sh
+python3 -m engine.server --port 8000 --db var/spark.db
+```
+
+服务只绑定 `127.0.0.1`，地址为 `http://127.0.0.1:8000/api/v1`。默认数据库 `var/spark.db` 在本地持久化并被 Git 忽略；首次演示请使用空数据库。需重演时传入另一个新的 `--db` 路径，避免覆盖现有项目。前端现有 API client 可连接该地址。没有额外 Python 依赖或模型密钥。
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 tests/http_smoke.py
+```
+
+第二条命令要求服务已启动且数据库为空，会导入四份合成材料。代码已经实现单项目、材料导入和原文段落定位、同步完成的分析任务、三版历史、按场次去重的演示重要性评分、Markdown 导出和 SQLite 恢复。`engine_mode` 始终为 `mock`；该引擎只识别冻结案例的精确原话，其余材料不足时明确返回 `insufficient_evidence`。首轮纠错接口返回 `501 NOT_IMPLEMENTED`，不会假装保存成功；真实 AI 分析、正式规则核验和同场多材料分组尚未实现。`meeting_id` 可选，缺省时服务为每份材料单独建场，当前仅适用一场一份材料。
 
 ## 工作约定
 
