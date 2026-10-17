@@ -30,6 +30,8 @@ class KimiProvider:
 
     def _request(self, messages, *, stream):
         body = {"model": self.model, "messages": messages, "stream": stream, "max_tokens": 4096}
+        if not stream:
+            body["response_format"] = {"type": "json_object"}
         if self.model in ("kimi-k2.5", "kimi-k2.6"):
             body["thinking"] = {"type": "disabled"}
         payload = json.dumps(body, ensure_ascii=False).encode("utf-8")

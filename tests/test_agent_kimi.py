@@ -179,6 +179,20 @@ class KimiAgentTests(unittest.TestCase):
                 provider.verify_model()
             self.assertEqual(caught.exception.code, "UPSTREAM_RESPONSE_INVALID")
 
+    def test_analysis_transport_requests_json_mode_but_chat_stream_does_not(self):
+        requests = []
+        def opener(request, **_kwargs):
+            body = json.loads(request.data); requests.append(body)
+            if body["stream"]:
+                return io.BytesIO(b'data: {"choices":[{"delta":{"content":"hello"}}]}\n\ndata: [DONE]\n\n')
+            return io.BytesIO(b'{"choices":[{"message":{"content":"{}"},"finish_reason":"stop"}]}')
+        provider = KimiProvider(api_key="stub", base_url="https://api.moonshot.cn/v1", model="kimi-k2.6", opener=opener)
+        self.assertEqual(provider.complete([]), "{}")
+        self.assertEqual(list(provider.stream([])), ["hello"])
+        self.assertEqual(requests[0]["response_format"], {"type": "json_object"})
+        self.assertNotIn("response_format", requests[1])
+        self.assertEqual(requests[0]["thinking"], {"type": "disabled"})
+
     def test_wrong_json_enum_types_are_rejected_as_model_errors(self):
         for outcome in ([], {}):
             with self.assertRaises(AnalysisError):

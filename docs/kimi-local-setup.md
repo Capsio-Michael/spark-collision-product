@@ -46,3 +46,5 @@ python3 -m engine.server --port 8000 --db var/spark.db
 对话使用 `POST /api/v1/chat/stream`，服务端只把最近的用户／助手消息交给 Kimi，不传工具或本机文件权限。对话回复不能冒充材料分析结果。分析用 `POST /api/v1/projects/{id}/agent-analysis`，接收已导入项目的 `record_id` 与 `allow_external_processing` 布尔值；获准材料必须由用户确认有权发送给 Kimi，服务端也会拒绝未确认请求。后端按原文件段落逐字核对每条引文，自己计算本轮新关注点、补充和修正数量。JSON 或引文不合格时返回错误且不保存。通过核对的结果存入 SQLite 的 `agent_analyses`，并在对话卡片中标为 **Kimi 引文分析**；它尚未并入旧版项目快照、六维总览、纠错和导出。旧 `POST /analyses` 及项目总览仍明确是 mock。
 
 2026-10-17 首次真实调用返回 HTTP 404，未保存分析结果。核对[官方模型列表](https://platform.kimi.com/docs/models)后确认此前选择的 `kimi-k2.5` 已于 2026-08-31 下线，已改用 `kimi-k2.6`，待重启后再验证真实生成。启动会先用同一个后端进程中的 Key 请求官方 `/models`，确认配置模型在当前列表中；这一步不进行文本生成。检查失败则拒绝启动，不回退为模拟成功。模型输出质量、费用与跨场归纳仍需真实验收。
+
+K2.6 首次真实返回未通过 JSON 解析，分析请求现显式设置 `response_format: {"type":"json_object"}`，而自由对话流保持文本格式。参考[官方 JSON Mode](https://platform.kimi.com/docs/guide/use-json-mode-feature-of-kimi-api)。API 负责输出合法 JSON，应用继续独立检查字段、类型、新旧关注点和逐字引文；不会从解释文字中猜取一个对象，或跳过证据核验。
