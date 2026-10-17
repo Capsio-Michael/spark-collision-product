@@ -6,7 +6,7 @@
 | --- | --- |
 | `SPARK_CHAT_PROVIDER` | `kimi` |
 | `SPARK_KIMI_BASE_URL` | 按账户区域选择 `https://api.moonshot.cn/v1` 或 `https://api.moonshot.ai/v1`，必须与实际 Key 区域相符 |
-| `SPARK_KIMI_MODEL` | 本次联调选用 `kimi-k2.5`，以账户实际开通情况为准 |
+| `SPARK_KIMI_MODEL` | 本次联调选用 `kimi-k2.6`，以账户实际开通情况为准 |
 | `SPARK_KIMI_API_KEY` | 用户仅在本机服务进程环境中输入的密钥，不放进仓库、网页或截图 |
 
 `.env.example` 只有空占位，仓库的 `.gitignore` 忽略 `.env` 和 `.env.*`（例外仅 `.env.example`）。服务**不会自动读取** `.env`；请在启动服务的终端或本机受控环境中设置变量。不要把 Key 贴给协作者或写进前端代码。配置区域和接口格式可对照 [Kimi 中国区 API 概述](https://platform.kimi.com/docs/api/overview) 与 [国际区 API 概述](https://platform.kimi.ai/docs/api/overview)。
@@ -19,7 +19,7 @@ Windows 用户在仓库根目录打开 PowerShell，执行：
 powershell -ExecutionPolicy Bypass -File .\scripts\start-kimi-local.ps1
 ```
 
-出现 `Kimi API Key (hidden)` 后粘贴 Key、回车即可。输入不会回显，也不进入命令历史；脚本只给本机后端进程设置变量，不写密钥文件。保持窗口开启，`Ctrl+C` 停止。中国区地址为 `https://api.moonshot.cn/v1`，默认模型 `kimi-k2.5`；按[官方模型说明](https://huggingface.co/moonshotai/Kimi-K2.5)设置即时模式和最多 4096 个输出 token。脚本使用独立数据库 `var/kimi-live.db`，不覆盖此前演示库。需要换端口可追加 `-Port 8001`，同时修改页面连接地址。
+出现 `Kimi API Key (hidden)` 后粘贴 Key、回车即可。输入不会回显，也不进入命令历史；脚本只给本机后端进程设置变量，不写密钥文件。保持窗口开启，`Ctrl+C` 停止。中国区地址为 `https://api.moonshot.cn/v1`，默认模型 `kimi-k2.6`；按[官方模型说明](https://platform.kimi.com/docs/guide/kimi-k2-6-quickstart)设置即时模式和最多 4096 个输出 token。脚本使用独立数据库 `var/kimi-live.db`，不覆盖此前演示库。需要换端口可追加 `-Port 8001`，同时修改页面连接地址。
 
 脚本优先选择本机 Codex 附带的 Python，再查找系统 Python，跳过 WindowsApps 安装别名，并在询问 Key 前验证 Python 3.10+、SQLite 和端口。可追加 `-CheckOnly` 单独检查运行环境，不询问 Key，也不启动服务。旧版出现退出码 `9009` 时更新脚本后重试；启动失败会清除本次进程中的临时 Key，下次需要重新在隐藏提示中输入。
 
@@ -45,4 +45,4 @@ python3 -m engine.server --port 8000 --db var/spark.db
 
 对话使用 `POST /api/v1/chat/stream`，服务端只把最近的用户／助手消息交给 Kimi，不传工具或本机文件权限。对话回复不能冒充材料分析结果。分析用 `POST /api/v1/projects/{id}/agent-analysis`，接收已导入项目的 `record_id` 与 `allow_external_processing` 布尔值；获准材料必须由用户确认有权发送给 Kimi，服务端也会拒绝未确认请求。后端按原文件段落逐字核对每条引文，自己计算本轮新关注点、补充和修正数量。JSON 或引文不合格时返回错误且不保存。通过核对的结果存入 SQLite 的 `agent_analyses`，并在对话卡片中标为 **Kimi 引文分析**；它尚未并入旧版项目快照、六维总览、纠错和导出。旧 `POST /analyses` 及项目总览仍明确是 mock。
 
-本轮只用离线 stub 和合成案例测试了协议与界面，**没有使用真实 Key，也没有发起真实 Kimi 调用**。真正的模型表现、费用、跨场归纳质量和提示词需在用户完成本机配置后再单独验证。
+2026-10-17 首次真实调用返回 HTTP 404，未保存分析结果。核对[官方模型列表](https://platform.kimi.com/docs/models)后确认此前选择的 `kimi-k2.5` 已于 2026-08-31 下线，已改用 `kimi-k2.6`，待重启后再验证真实生成。启动会先用同一个后端进程中的 Key 请求官方 `/models`，确认配置模型在当前列表中；这一步不进行文本生成。检查失败则拒绝启动，不回退为模拟成功。模型输出质量、费用与跨场归纳仍需真实验收。

@@ -144,12 +144,12 @@ class KimiAgentTests(unittest.TestCase):
         finally:
             offline.store.db.close()
 
-    def test_k25_instant_mode_and_incomplete_stream_are_not_reported_as_success(self):
+    def test_k26_instant_mode_and_incomplete_stream_are_not_reported_as_success(self):
         requests = []
         def opener(request, **_kwargs):
             requests.append(json.loads(request.data))
             return io.BytesIO(b'data: {"choices":[{"delta":{"content":"partial"}}]}\n\n')
-        provider = KimiProvider(api_key="stub", base_url="https://api.moonshot.cn/v1", model="kimi-k2.5", opener=opener)
+        provider = KimiProvider(api_key="stub", base_url="https://api.moonshot.cn/v1", model="kimi-k2.6", opener=opener)
         with self.assertRaises(ProviderError) as incomplete:
             list(provider.stream([{"role": "user", "content": "hi"}]))
         self.assertEqual(incomplete.exception.code, "UPSTREAM_INCOMPLETE")
@@ -158,6 +158,26 @@ class KimiAgentTests(unittest.TestCase):
         clipped = KimiProvider(api_key="stub", base_url="https://api.moonshot.cn/v1", model="kimi-k2.5", opener=lambda *_args, **_kwargs: io.BytesIO(b'{"choices":[{"message":{"content":"{}"},"finish_reason":"length"}]}'))
         with self.assertRaises(ProviderError):
             clipped.complete([])
+
+    def test_startup_model_check_rejects_retired_model_without_chat_request(self):
+        calls = []
+        def opener(request, **_kwargs):
+            calls.append((request.full_url, request.get_method()))
+            return io.BytesIO(b'{"data":[{"id":"kimi-k2.6"},{"id":"kimi-k3"}]}')
+        current = KimiProvider(api_key="stub", base_url="https://api.moonshot.cn/v1", model="kimi-k2.6", opener=opener)
+        current.verify_model()
+        retired = KimiProvider(api_key="stub", base_url="https://api.moonshot.cn/v1", model="kimi-k2.5", opener=opener)
+        with self.assertRaises(ProviderError) as caught:
+            retired.verify_model()
+        self.assertEqual(caught.exception.code, "MODEL_NOT_AVAILABLE")
+        self.assertEqual(calls, [("https://api.moonshot.cn/v1/models", "GET")] * 2)
+
+    def test_startup_model_check_rejects_malformed_list(self):
+        for payload in (b'not json', b'{"data":[null]}', b'{"data":{}}'):
+            provider = KimiProvider(api_key="stub", base_url="https://api.moonshot.cn/v1", model="kimi-k2.6", opener=lambda *_args, **_kwargs: io.BytesIO(payload))
+            with self.assertRaises(ProviderError) as caught:
+                provider.verify_model()
+            self.assertEqual(caught.exception.code, "UPSTREAM_RESPONSE_INVALID")
 
     def test_wrong_json_enum_types_are_rejected_as_model_errors(self):
         for outcome in ([], {}):

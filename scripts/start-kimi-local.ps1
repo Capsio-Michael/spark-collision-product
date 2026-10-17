@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateRange(1024, 65535)][int]$Port = 8000,
-    [string]$Model = 'kimi-k2.5',
+    [string]$Model = 'kimi-k2.6',
     [string]$Database = 'var/kimi-live.db',
     [switch]$CheckOnly
 )
@@ -41,6 +41,7 @@ try {
 Write-Host 'Kimi China / model:' $Model
 Write-Host 'Paste your API key at the hidden prompt. It will not be saved to a file or command history.'
 Write-Host 'Keep this terminal open while testing. Stop the server with Ctrl+C.'
+Write-Host 'Startup checks the available model list before opening the local API.'
 $secureKey = Read-Host 'Kimi API Key (hidden)' -AsSecureString
 $names = @('SPARK_CHAT_PROVIDER', 'SPARK_KIMI_BASE_URL', 'SPARK_KIMI_MODEL', 'SPARK_KIMI_API_KEY')
 $previous = @{}

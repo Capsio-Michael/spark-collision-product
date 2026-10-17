@@ -256,7 +256,7 @@ class App:
         query = query or {}
         state = self.store.read()
         if method == "GET" and path == "/health":
-            return 200, {"status": "ok", "api_version": "0.1", "engine_mode": "mock", "model_configured": bool(self.chat_provider), "chat_provider": "kimi" if self.chat_provider else "none", "agent_analysis_mode": "kimi" if self.chat_provider else "unavailable"}, {}
+            return 200, {"status": "ok", "api_version": "0.1", "engine_mode": "mock", "model_configured": bool(self.chat_provider), "chat_provider": "kimi" if self.chat_provider else "none", "chat_model": self.chat_provider.model if self.chat_provider else None, "agent_analysis_mode": "kimi" if self.chat_provider else "unavailable"}, {}
         if method == "GET" and path == "/projects":
             return 200, {"items": [state["project"]] if state["project"] else []}, {}
         if method == "POST" and path == "/projects":
@@ -544,8 +544,12 @@ def main():
         parser.error("SPARK_CHAT_PROVIDER must be none or kimi")
     try:
         provider = KimiProvider.from_env() if mode == "kimi" else None
+        if provider:
+            provider.verify_model()
     except ValueError as error:
         parser.error(str(error))
+    except ProviderError as error:
+        parser.error(f"{error.code}: {error.message}")
     Handler.app = App(args.db, chat_provider=provider)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     print(f"Local engine (project analysis: mock; agent: {mode}) listening on http://127.0.0.1:{args.port}/api/v1", flush=True)

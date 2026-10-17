@@ -30,12 +30,15 @@ class KimiProvider:
 
     def _request(self, messages, *, stream):
         body = {"model": self.model, "messages": messages, "stream": stream, "max_tokens": 4096}
-        if self.model == "kimi-k2.5":
+        if self.model in ("kimi-k2.5", "kimi-k2.6"):
             body["thinking"] = {"type": "disabled"}
         payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
         request = Request(f"{self.base_url}/chat/completions", data=payload, headers={
             "Authorization": f"Bearer {self._key}", "Content-Type": "application/json", "Accept": "text/event-stream" if stream else "application/json",
         }, method="POST")
+        return self._open(request)
+
+    def _open(self, request):
         try:
             return self._opener(request, timeout=self.timeout)
         except HTTPError as error:
@@ -43,6 +46,22 @@ class KimiProvider:
             raise ProviderError("UPSTREAM_HTTP_ERROR", f"Kimi 服务返回 HTTP {error.code}，请检查模型、额度或服务区域。") from None
         except (TimeoutError, URLError, OSError):
             raise ProviderError("UPSTREAM_NETWORK_ERROR", "Kimi 请求超时或网络暂时不可用。") from None
+
+    def verify_model(self):
+        """Check credentials and advertised model availability without generating tokens."""
+        request = Request(f"{self.base_url}/models", headers={"Authorization": f"Bearer {self._key}", "Accept": "application/json"})
+        try:
+            with self._open(request) as response:
+                value = json.loads(response.read(262144))
+            items = value.get("data") if isinstance(value, dict) else None
+            if not isinstance(items, list) or any(not isinstance(item, dict) or not isinstance(item.get("id"), str) for item in items):
+                raise ProviderError("UPSTREAM_RESPONSE_INVALID", "Kimi 模型列表格式不正确，请稍后重试。")
+            if self.model not in {item["id"] for item in items}:
+                raise ProviderError("MODEL_NOT_AVAILABLE", "所选 Kimi 模型不在当前可用列表中，请核对 SPARK_KIMI_MODEL。")
+        except (TimeoutError, URLError, OSError):
+            raise ProviderError("UPSTREAM_NETWORK_ERROR", "Kimi 模型列表查询超时或网络暂时不可用。") from None
+        except (ValueError, TypeError):
+            raise ProviderError("UPSTREAM_RESPONSE_INVALID", "Kimi 模型列表格式不正确，请稍后重试。") from None
 
     def complete(self, messages):
         try:

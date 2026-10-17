@@ -98,7 +98,7 @@ function kimiSetup() {
     async agentAnalyses() { return { items: [...saved] }; },
     async agentAnalysis(projectId, id, consent, key) {
       keys.push(key); calls.push('kimi');
-      const item = { id: `analysis-${id}`, record_id: id, model: 'kimi-k2.5', result: { summary: '报价边界待核实', outcome: 'updated', changes: [{ title: '报价边界', type: 'new', reason: '条件不同', judgment: '模型推断', evidence: [{ record_id: id, segment_id: 'segment', quote: '需要核实的原话', meeting_id: 'M1' }] }] } };
+      const item = { id: `analysis-${id}`, record_id: id, model: 'kimi-k2.6', result: { summary: '报价边界待核实', outcome: 'updated', changes: [{ title: '报价边界', type: 'new', reason: '条件不同', judgment: '模型推断', evidence: [{ record_id: id, segment_id: 'segment', quote: '需要核实的原话', meeting_id: 'M1' }] }] } };
       saved.push(item); return item;
     },
   };
