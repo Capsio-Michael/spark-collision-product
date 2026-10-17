@@ -15,6 +15,22 @@ function setup() {
 }
 function file(name = '会议.md') { const bytes = new TextEncoder().encode('客户：这是合成讨论。'); return { name, size: bytes.length, arrayBuffer: async () => bytes.buffer }; }
 
+test('conversation removal persists and can be undone without deleting materials or cancelling a job', async () => {
+  const { storage, workflow } = setup(); let chat = new ChatComposer(storage);
+  chat.text = '需要保留的原文'; chat.basis = 'synthetic'; await chat.send(workflow);
+  const ids = [...chat.runIds], job = workflow.state.active_job;
+  chat.dismissRun(); chat = new ChatComposer(storage);
+  assert.deepEqual(chat.runIds, []); assert.deepEqual(chat.dismissedRunIds, ids);
+  assert.equal(workflow.state.drafts[0].content, '需要保留的原文'); assert.equal(workflow.state.active_job, job);
+  chat.restoreRun(); assert.deepEqual(new ChatComposer(storage).runIds, ids);
+});
+test('conversation removal is blocked while submitting and rolled back if saving fails', () => {
+  const { storage } = setup(), chat = new ChatComposer(storage); chat.runIds = ['original'];
+  chat.busy = true; chat.dismissRun(); assert.deepEqual(chat.runIds, ['original']);
+  chat.busy = false; storage.setItem = () => { throw Error('quota'); };
+  chat.dismissRun(); assert.deepEqual(chat.runIds, ['original']); assert.match(chat.error, /未保存/);
+});
+
 test('adding files only stages exact text; no network request until explicit send', async () => {
   const { storage, workflow, calls } = setup(), chat = new ChatComposer(storage);
   await chat.addFiles([file()]); assert.deepEqual(calls, []);

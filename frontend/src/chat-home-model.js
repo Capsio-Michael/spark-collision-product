@@ -5,7 +5,7 @@ const KEY = 'spark-collision:conversation-input:v1';
 export class ChatComposer {
   constructor(storage, { onChange = () => {} } = {}) {
     this.storage = storage; this.onChange = onChange;
-    this.files = []; this.text = ''; this.basis = ''; this.authorization = ''; this.runIds = [];
+    this.files = []; this.text = ''; this.basis = ''; this.authorization = ''; this.runIds = []; this.dismissedRunIds = [];
     this.busy = false; this.reading = false; this.error = ''; this.phase = ''; this.exampleVersion = null;
     try {
       const saved = JSON.parse(storage.getItem(KEY) || 'null');
@@ -13,15 +13,16 @@ export class ChatComposer {
         if (!Array.isArray(saved.files) || saved.files.some(f => typeof f.content !== 'string' || typeof f.title !== 'string' || typeof f.client_record_id !== 'string')
           || typeof saved.text !== 'string' || !Array.isArray(saved.runIds) || saved.runIds.some(id => typeof id !== 'string')) throw Error('invalid');
         this.files = saved.files; this.text = saved.text; this.runIds = saved.runIds;
+        this.dismissedRunIds = Array.isArray(saved.dismissedRunIds) ? saved.dismissedRunIds.filter(id => typeof id === 'string') : [];
         this.basis = ['synthetic', 'authorized'].includes(saved.basis) ? saved.basis : '';
         this.authorization = typeof saved.authorization === 'string' ? saved.authorization : '';
       }
     } catch { this.error = '对话输入暂存无法读取，请到材料列表核查原草稿。'; this.storageBroken = true; }
   }
   persist() {
-    if (this.storageBroken) return;
-    try { this.storage.setItem(KEY, JSON.stringify({ files: this.files, text: this.text, basis: this.basis, authorization: this.authorization, runIds: this.runIds })); }
-    catch { this.error = '输入暂未保存到浏览器，请保留原文后重试。'; }
+    if (this.storageBroken) return false;
+    try { this.storage.setItem(KEY, JSON.stringify({ files: this.files, text: this.text, basis: this.basis, authorization: this.authorization, runIds: this.runIds, dismissedRunIds: this.dismissedRunIds })); return true; }
+    catch { this.error = '输入暂未保存到浏览器，请保留原文后重试。'; return false; }
   }
   async addFiles(files) {
     if (this.reading || this.busy) return;
@@ -34,6 +35,19 @@ export class ChatComposer {
     finally { this.reading = false; this.onChange(); }
   }
   removeFile(id) { if (this.busy || this.reading) return; this.files = this.files.filter(f => f.client_record_id !== id); this.persist(); this.onChange(); }
+  dismissRun() {
+    if (this.busy || !this.runIds.length) return;
+    const previous = this.dismissedRunIds, ids = this.runIds;
+    this.dismissedRunIds = ids; this.runIds = []; this.error = ''; this.phase = '';
+    if (!this.persist()) { this.runIds = ids; this.dismissedRunIds = previous; }
+    this.onChange();
+  }
+  restoreRun() {
+    if (this.busy || this.runIds.length || !this.dismissedRunIds.length) return;
+    const ids = this.dismissedRunIds; this.runIds = ids; this.dismissedRunIds = [];
+    if (!this.persist()) { this.runIds = []; this.dismissedRunIds = ids; }
+    this.onChange();
+  }
   async send(workflow, resume = false) {
     if (this.busy || this.reading) return;
     this.busy = true; this.error = ''; this.exampleVersion = null;
@@ -46,7 +60,7 @@ export class ChatComposer {
         const invalid = validateDrafts(normalized); if (invalid) throw Error(invalid);
         // Save atomically before clearing the composer or sending any request.
         workflow.save(normalized);
-        this.runIds = normalized.map(r => r.client_record_id); this.files = []; this.text = '';
+        this.runIds = normalized.map(r => r.client_record_id); this.dismissedRunIds = []; this.files = []; this.text = '';
         this.basis = ''; this.authorization = ''; this.persist();
       }
       if (!this.runIds.length || this.runIds.some(id => !workflow.state.drafts.some(r => r.client_record_id === id))) throw Error('本次草稿不在材料列表中，请核查后重新添加。');
