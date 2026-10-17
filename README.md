@@ -1,6 +1,6 @@
 # 智慧火花碰撞 · 产品定义工作区
 
-状态：**定义阶段**。这里是独立的本地 Git 仓库，尚无可运行产品；文档中的能力、界面和验收项均为今天 Hackathon 的目标或建议，不代表已经实现。
+状态：**前端交互开发中**。已有浅色首页、用户项目六维／变化／搜索筛选、材料导入与草稿管理、认知详情、判断纠错、历史版本对比、Markdown 导出，以及引擎连接／提交／分析轮询代码；示例与验收服务使用明确标注的合成数据。伙伴引擎尚未联调成功，不代表真实分析、持久化与全部验收项已通过。启动与范围见 [前端说明](frontend/README.md)。
 
 ## 一句话
 
@@ -14,7 +14,12 @@
 
 - [产品定义](docs/product-definition.md)：对象、证据与判断规则、输出结构。
 - [MVP 范围与验收](docs/mvp-acceptance.md)：今天做什么、怎样证明完成。
-- [协作分工与任务池](docs/collaboration.md)：用户提议负责后端引擎与服务，同事负责交互与用户体验；其余职责待认领。
+- [协作分工与任务池](docs/collaboration.md)：当前协作者负责交互与接口文档，伙伴负责引擎；具体交付边界待双方确认。
+- [接口契约 v0.1](docs/api-contract.md)：接口、字段、分析状态、证据定位、版本、纠错与导出；当前为评审稿。
+- [接口确认清单](docs/api-review-checklist.md)：开发前、联调前、展示前需要共同确认的事项。
+- [前端运行说明](frontend/README.md)：本地预览、当前功能、后续范围和测试方式。
+- [历史与详情集成](docs/history-integration.md)：模块边界、固定版本读取和只读行为。
+- [结果导出集成](docs/export-integration.md)：版本选择、文件下载、合成报告与真实引擎边界。
 - [决策记录](docs/decisions.md)：已确定的边界与待裁定事项。
 - [五小时计划](docs/hackathon-plan.md)：开发、验收和展示节奏。
 
@@ -24,6 +29,13 @@
 
 ## 两人并行开发
 
-私有 GitHub 仓库：`https://github.com/Capsio-Michael/spark-collision-product`。获得仓库访问权限后，同事可执行 `git clone https://github.com/Capsio-Michael/spark-collision-product.git`。`main` 放已确认的共同基线；`work/product-definition` 保留定义阶段记录。建议用户在 `work/engine-service` 开发后端引擎与服务，同事在 `work/interaction-ux` 开发交互与用户体验；两人先按 [协作分工](docs/collaboration.md) 约定最小接口，再各自提交到自己的分支，通过 Pull Request 合入 `main`。分支只表示工作范围，不代表任务已经实现。
+私有 GitHub 仓库：`https://github.com/Capsio-Michael/spark-collision-product`。获得仓库访问权限后，协作者可执行 `git clone https://github.com/Capsio-Michael/spark-collision-product.git`。`main` 放已确认的共同基线；`work/product-definition` 保留定义阶段记录。引擎方在 `work/engine-service` 开发后端引擎与服务，交互方在 `work/interaction-ux` 开发交互与用户体验并维护接口文档；两人先按 [接口确认清单](docs/api-review-checklist.md) 约定最小接口，再各自提交到自己的分支，通过 Pull Request 合入 `main`。分支只表示工作范围，不代表任务已经实现。
 
 上一级目录的 `spark-collision-product-docs.zip` 适合离线阅读定义文档；`spark-collision-product.bundle` 是创建远程仓库之前的本地历史备份，后续协作请以 GitHub 为准。不要提交凭据或客户私密材料。
+
+## 当前联调缺口（2026-10-17 检查）
+
+- 交互、详情、纠错、历史、导出与单场／跨场来源展示已实现；本轮 91 项自动检查通过。模拟数据检查不代表真实模型、服务端持久化或完整产品验收通过。
+- 引擎方的远程 `work/engine-service` 分支当前已提交接口评审意见，尚未包含服务代码。双方仍需确认实际采用的路由、响应结构、异步任务与错误状态，并完成端到端联调。
+- 火花来源响应扩展见 [来源契约](docs/spark-origins-contract.md)。材料导入目前还没有场次分组输入；需要确认由导入方还是现有来源系统提供分组。缺场次数据时展示“碰撞来源待补充”，不按文件数量猜测。
+- 现有 Markdown 导出保留判断、ABCDV、原文与历史；新增的单场／跨场事件路径尚未进入导出，需按 S09 另行对接。这个缺口不影响既有报告下载。

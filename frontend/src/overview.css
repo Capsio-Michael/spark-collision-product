@@ -1,0 +1,33 @@
+.ov-summary { margin-bottom: 18px; }
+.ov-summary > p { color: #788394; font-size: 12px; line-height: 1.9; }
+.ov-summary .ov-offline { padding: 9px 12px; background: #fff6ea; border-radius: 7px; color: #9c754f; font-size: 11px; }
+.ov-stats { margin-top: 14px; }
+.ov-changes { padding: 21px; }
+.ov-changes .section-heading .text-button { white-space: nowrap; font-size: 11px; }
+.ov-change { padding: 18px 0; border-top: 1px solid #edf0f4; }
+.ov-change:first-of-type { margin-top: 17px; }
+.ov-change:last-child { padding-bottom: 0; }
+.ov-change > div:first-child { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ov-change h3 { font-size: 13px; color: #586374; margin: 10px 0 7px; line-height: 1.8; }
+.ov-change p { color: #8c94a0; font-size: 11px; line-height: 1.9; margin: 7px 0; overflow-wrap: anywhere; }
+.ov-change .ov-current { border-left: 2px solid #e8d8c8; padding: 6px 11px; background: #fdfaf6; color: #7b746c; }
+.ov-current span { display: block; color: #aa998a; font-size: 9px; }
+.ov-change-footer { display: flex; gap: 10px; justify-content: space-between; align-items: start; margin-top: 12px; }
+.ov-change-footer .text-button { font-size: 10px; white-space: nowrap; }
+.ov-citations { flex-wrap: wrap; }
+.ov-muted { color: #9ca4af; font-size: 10px; line-height: 1.9; }
+.ov-coverage { display: flex; flex-wrap: wrap; gap: 5px 14px; color: #919aa8; font-size: 10px; padding-top: 14px; }
+.ov-coverage-note { font-size: 9px; color: #a5aeba; line-height: 1.9; margin: 7px 0; overflow-wrap: anywhere; }
+.ov-dimension-detail h4 { font-size: 11px; color: #8c97a5; margin: 18px 0 6px; }
+.ov-dimension-detail .ov-list { margin: 7px 0; padding-left: 18px; color: #8b96a6; font-size: 12px; line-height: 1.9; overflow-wrap: anywhere; }
+.ov-finding-section { border-top: 1px solid #edf0f4; margin-top: 22px; padding-top: 8px; }
+.ov-dimension-detail p { overflow-wrap: anywhere; }
+.ov-changes > .ov-muted, .validation-panel > .ov-muted { margin-top: 15px; }
+@media (max-width: 640px) {
+  .ov-changes { padding: 16px; }
+  .ov-changes .section-heading { gap: 8px; }
+  .ov-changes .section-heading h2 { font-size: 14px; }
+  .ov-change-footer { flex-wrap: wrap; }
+  .ov-summary .section-heading { flex-wrap: wrap; }
+  .ov-summary .button { font-size: 11px; }
+}

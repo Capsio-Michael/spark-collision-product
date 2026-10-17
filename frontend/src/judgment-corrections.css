@@ -1,0 +1,42 @@
+.jc-panel { margin-top: 17px; padding: 17px 19px; border: 1px solid #e5e9ed; border-radius: 10px; background: #fff; }
+.jc-heading { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; color: #6c7a8c; font-size: 12px; }
+.jc-heading > span:last-child { font-size: 9px; color: #a0a8b4; }
+.jc-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 13px; }
+.jc-button { border: 1px solid #dde3eb; border-radius: 6px; padding: 8px 12px; background: #fff; color: #738195; font-size: 11px !important; line-height: 1.5; min-height: 34px; }
+.jc-button:hover:not(:disabled) { background: #f7f8fa; border-color: #bac6d5; }
+.jc-primary { background: #bd6b3b; color: #fff; border-color: #bd6b3b; }
+.jc-primary:hover:not(:disabled) { background: #aa5a2f; border-color: #aa5a2f; }
+.jc-button:disabled { opacity: .55; cursor: not-allowed; }
+.jc-readonly, .jc-preview-note { color: #98a2b0; font-size: 10px; line-height: 1.9; padding: 11px 2px 0; }
+.jc-preview-note { color: #9b866f; }
+.jc-status { border-radius: 6px; background: #f1f4f8; margin: 13px 0 10px; padding: 11px 13px; font-size: 11px; line-height: 1.9; color: #7d899a; overflow-wrap: anywhere; }
+.jc-status strong { font-weight: 500; }
+.jc-status span { display: block; font-size: 10px; opacity: .85; margin-top: 4px; }
+.jc-status-saved { background: #eef5ed; color: #658168; }
+.jc-status-error, .jc-status-uncertain, .jc-status-sync_error, .jc-status-stale, .jc-status-blocked, .jc-status-other_pending { background: #fff5e5; color: #997d4d; }
+.jc-status + .jc-button { margin-bottom: 7px; }
+.jc-form { margin-top: 16px; border-top: 1px solid #edf0f4; padding-top: 16px; }
+.jc-form-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.jc-form-heading h4 { margin: 0; font-size: 13px; font-weight: 600; }
+.jc-form-heading > span { font-size: 10px; color: #a3acb7; }
+.jc-explanation { font-size: 11px; line-height: 1.9; color: #8d98a7; margin: 10px 0 13px; }
+.jc-form fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.jc-original { padding: 12px 14px; background: #f7f8fa; border-radius: 6px; margin-bottom: 14px; }
+.jc-original > span { display: block; font-size: 9px; color: #a1aab6; margin-bottom: 6px; }
+.jc-original > p { margin: 0; font-size: 12px; color: #788598; line-height: 1.9; white-space: pre-wrap; }
+.jc-field { display: block; margin: 13px 0; }
+.jc-field > span { display: block; font-size: 11px; color: #8b97a7; margin-bottom: 6px; }
+.jc-field input, .jc-field textarea, .jc-field select { width: 100%; border: 1px solid #dfe5ed; border-radius: 6px; padding: 9px 11px; font: inherit; font-size: 12px; background: #fff; color: #5e6d81; line-height: 1.8; }
+.jc-field textarea { resize: vertical; min-height: 75px; }
+.jc-field input::placeholder, .jc-field textarea::placeholder { color: #b1b9c4; font-size: 10px; }
+.jc-field input:focus, .jc-field textarea:focus, .jc-field select:focus { outline: 2px solid #ead7c8; border-color: #d1ac8e; }
+.jc-field input:disabled, .jc-field textarea:disabled, .jc-field select:disabled { background: #f7f8fa; opacity: .8; }
+.jc-checkbox { display: flex; gap: 8px; align-items: flex-start; margin-top: 14px; font-size: 10px; color: #8c98a7; line-height: 1.9; }
+.jc-checkbox input { margin-top: 4px; accent-color: #b7784b; flex-shrink: 0; }
+.jc-fact-fields { background: #fbf8f1; border-radius: 6px; padding: 1px 12px 12px; margin-top: 12px; }
+.jc-citation-note { font-size: 10px; color: #a1aab7; line-height: 1.9; margin-top: 9px; }
+.jc-advanced { border: 1px solid #e7ebf1; border-radius: 6px; margin-top: 13px; padding: 10px 12px; }
+.jc-advanced > summary { font-size: 11px; color: #8b96a5; cursor: pointer; }
+.jc-inline-error, .jc-review-note { background: #fff7e9; border-radius: 5px; padding: 10px 12px; color: #a0804b; font-size: 11px; line-height: 1.9; margin-top: 12px; }
+.jc-form-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; border-top: 1px solid #edf0f4; padding-top: 13px; margin-top: 15px; }
+@media (max-width: 800px) { .jc-panel { padding: 15px; } .jc-form-footer > button { flex: 1; } }
